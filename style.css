@@ -1,0 +1,119 @@
+
+        /* Estilos globais para o corpo da página */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    background-color: #f4f4f9; /* Um cinza bem claro */
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+/* Estilos para o contêiner principal */
+.container {
+    background-color: #ffffff; /* Fundo branco para o card */
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+    width: 100%;
+}
+
+/* Estilos para a logo */
+.logo {
+    max-width: 350px;
+    height: auto;
+    margin-bottom: 20px;
+}
+
+/* Estilos para o título principal */
+h1 {
+    font-size: 1.8em;
+    color: #2e5d34; /* Cor verde escura para o título */
+    margin-bottom: 30px;
+}
+
+/* Estilos para os botões */
+button {
+    width: 100%;
+    padding: 15px 25px;
+    margin-bottom: 15px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    text-decoration: none;
+    color: #fff;
+    display: inline-block;
+}
+
+/* Estilo para o primeiro botão (Ver Horários) */
+button:nth-of-type(1) {
+    background-color: #5cb85c; /* Verde claro */
+}
+
+/* Estilo para o segundo botão (Acessar Site) */
+button:nth-of-type(2) {
+    background-color: #2e5d34; /* Verde escuro */
+}
+
+/* Efeito hover (passar o mouse por cima) nos botões */
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Efeito ativo (clicar) nos botões */
+button:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+/* Adicione estas regras ao final do seu arquivo style.css */
+
+/*
+   Ajustes para telas menores, tipicamente celulares.
+   Esta media query aplica os estilos quando a largura da tela
+   for de no máximo 600px.
+*/
+@media (max-width: 600px) {
+    body {
+        /* Remove o padding lateral em telas pequenas para aproveitar o espaço */
+        padding: 10px;
+    }
+
+    .container {
+        /*
+           Reduz o padding do card para ele não parecer muito apertado
+           e remove a sombra para um visual mais limpo em telas pequenas.
+        */
+        padding: 20px;
+        box-shadow: none;
+        border-radius: 0; /* Remove as bordas arredondadas para um visual de tela cheia */
+    }
+
+    .logo {
+        /* Aumenta a logo um pouco para que ela se destaque mais em telas menores */
+        max-width: 120px;
+        margin-bottom: 15px;
+    }
+
+    h1 {
+        /* Reduz o tamanho do título para caber bem na tela */
+        font-size: 1.5em;
+        margin-bottom: 20px;
+    }
+
+    button {
+        /* Reduz um pouco o padding dos botões e a margem inferior para economizar espaço */
+        padding: 12px 20px;
+        font-size: 1em;
+        margin-bottom: 10px;
+    }
+}
