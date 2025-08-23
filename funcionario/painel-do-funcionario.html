@@ -74,7 +74,7 @@
   <script>
     function logout() {
       localStorage.removeItem("bv.session");
-      window.location.replace("/longs/logns.html");
+      window.location.replace("index.html");
     }
     
     // A função de proteção precisa ser definida globalmente para ser chamada
@@ -181,8 +181,8 @@
     (function protect(requiredRoles = ["funcionario", "funcionariorota", "sistema", "vendedor"]) {
       try {
           const s = JSON.parse(localStorage.getItem("bv.session") || "null");
-          if (!s || !requiredRoles.includes(s.role)) location.replace("/logns/logns.html");
-      } catch(e){ location.replace("/logns/logns.html"); }
+          if (!s || !requiredRoles.includes(s.role)) location.replace("index.html");
+      } catch(e){ location.replace("index.html"); }
     })();
     
     // === Config do seu projeto (inclui databaseURL para Realtime DB) ===
@@ -418,4 +418,5 @@
     checkAndRenderReminders();
   </script>
 </body>
+
 </html>
