@@ -81,8 +81,8 @@
     (function protect(requiredRoles = ["funcionario", "funcionariorota", "sistema", "vendedor"]) {
       try {
         const s = JSON.parse(localStorage.getItem("bv.session") || "null");
-        if (!s || !requiredRoles.includes(s.role)) location.replace("/logns/logns.html");
-      } catch(e){ location.replace("/logns/logns.html"); }
+        if (!s || !requiredRoles.includes(s.role)) location.replace("index.html");
+      } catch(e){ location.replace("index.html"); }
     })();
   </script>
 
@@ -119,6 +119,7 @@
     </section>
 
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
       <div class="bg-slate-800 rounded-xl p-5 shadow">
         <h2 class="text-xl font-semibold mb-4">Solicitar Horas Extras</h2>
         <form id="formSolicitacao" class="space-y-3">
@@ -145,19 +146,19 @@
           </p>
         </form>
       </div>
-
+      
       <div class="space-y-6">
         <div class="bg-slate-800 rounded-xl p-5 shadow">
           <h2 class="text-xl font-semibold mb-4">Minhas Horas (todas)</h2>
           <ul id="listaHoras" class="space-y-2 text-sm"></ul>
         </div>
-
         <div class="bg-slate-800 rounded-xl p-5 shadow">
           <h2 class="text-xl font-semibold mb-4">Valores já recebidos</h2>
           <ul id="listaValores" class="space-y-2 text-sm"></ul>
         </div>
       </div>
     </section>
+
   </main>
 
   <div id="notificationModal" class="modal">
@@ -170,19 +171,49 @@
         <div id="receivedRemindersContainer" class="space-y-4">
             <div class="text-gray-500">Nenhum lembrete recebido.</div>
         </div>
+        
+        <div class="mt-6 text-center">
+            <button onclick="openSendReminderModal()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg py-2 font-medium transition">
+                Criar novo Lembrete
+            </button>
+        </div>
+    </div>
+  </div>
+
+  <div id="sendReminderModal" class="modal">
+    <div class="modal-content">
+        <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-4">
+            <h3 class="text-2xl font-bold">✍️ Enviar Lembrete</h3>
+            <button onclick="toggleModal('sendReminderModal')" class="text-gray-400 hover:text-gray-200 text-3xl">&times;</button>
+        </div>
+        <form id="formLembrete" class="space-y-3">
+            <div>
+                <label class="block text-sm text-slate-300 mb-1">Destinatário</label>
+                <input id="inpDestinatario" type="text" required
+                       class="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 outline-none focus:border-indigo-500">
+            </div>
+            <div>
+                <label class="block text-sm text-slate-300 mb-1">Mensagem</label>
+                <textarea id="inpMensagem" rows="3" required
+                          class="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 outline-none focus:border-indigo-500"></textarea>
+            </div>
+            <button class="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg py-2 font-medium transition">
+                Enviar Lembrete
+            </button>
+        </form>
     </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getDatabase, ref, onValue, get, set, update } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+    import { getDatabase, ref, onValue, get, set, update, push } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
 
     // O código de proteção deve ser o primeiro a rodar
     (function protect(requiredRoles = ["funcionario", "funcionariorota", "sistema", "vendedor"]) {
       try {
           const s = JSON.parse(localStorage.getItem("bv.session") || "null");
-          if (!s || !requiredRoles.includes(s.role)) location.replace("index.html");
-      } catch(e){ location.replace("index.html"); }
+          if (!s || !requiredRoles.includes(s.role)) location.replace("/logns/logns.html");
+      } catch(e){ location.replace("/logns/logns.html"); }
     })();
     
     // === Config do seu projeto (inclui databaseURL para Realtime DB) ===
@@ -210,18 +241,28 @@
       btnRota.style.display = "none";
     }
     
-    // Referências HTML para o novo sistema de lembretes
+    // Referências HTML para os modais e formulários
     const notificationModal = document.getElementById('notificationModal');
+    const sendReminderModal = document.getElementById('sendReminderModal');
     const receivedRemindersContainer = document.getElementById('receivedRemindersContainer');
     const notificationDot = document.getElementById('notificationDot');
+    
+    const formLembrete = document.getElementById('formLembrete');
+    const inpDestinatario = document.getElementById('inpDestinatario');
+    const inpMensagem = document.getElementById('inpMensagem');
 
-    // === Funções de Lembrete ===
+    // === Funções dos Modais e Lembretes ===
     window.toggleModal = (modalId) => {
         const modal = document.getElementById(modalId);
         modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
-        if (modal.style.display === 'flex') {
+        if (modalId === 'notificationModal' && modal.style.display === 'flex') {
             checkAndRenderReminders();
         }
+    };
+
+    window.openSendReminderModal = () => {
+        toggleModal('notificationModal');
+        toggleModal('sendReminderModal');
     };
 
     window.markAsRead = (reminderId) => {
@@ -259,12 +300,39 @@
       });
     }
 
+    // Função para enviar um novo lembrete
+    async function sendReminder(destinatario, mensagem) {
+      if (!destinatario || !mensagem) {
+        alert("Por favor, preencha o destinatário e a mensagem.");
+        return;
+      }
+
+      const newReminder = {
+        remetente: NOME_FUNC,
+        destinatario: destinatario.trim(),
+        mensagem: mensagem.trim(),
+        timestamp: new Date().toISOString(),
+        lido: "não"
+      };
+
+      try {
+        await push(ref(db, "lembrete"), newReminder);
+        alert("Lembrete enviado com sucesso!");
+        formLembrete.reset();
+        toggleModal('sendReminderModal');
+      } catch (error) {
+        console.error("Erro ao enviar o lembrete:", error);
+        alert("Ocorreu um erro ao enviar o lembrete.");
+      }
+    }
+    
+
     // ATUALIZA OS ELEMENTOS NO HTML COM O NOME
     document.getElementById("nome-usuario-sidebar").textContent = NOME_FUNC;
     document.getElementById("nome-usuario-header").textContent = NOME_FUNC;
 
     // ==== Constantes do painel ====
-    const VALOR_HORA_EXTRA = 25; // usado só se o registro não tiver campo "valor"
+    const VALOR_HORA_EXTRA = 25; // usado só se o registro não tiver campo "valorpago"
     const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
     // ==== Helpers ====
@@ -305,21 +373,25 @@
             });
         }
 
-        // Valores recebidos (apenas aprovados)
+        // Valores recebidos (apenas aprovados e pagos)
         let totalHorasAprov = 0;
         let totalRecebido = 0;
         const ulValores = document.getElementById("listaValores");
         ulValores.innerHTML = "";
 
-        const aprovados = meus.filter(i => (i.status || "").toLowerCase() === "aprovado");
+        // LÓGICA ATUALIZADA: agora filtra por status 'aprovado' e 'pago'
+        const aprovados = meus.filter(i => ["aprovado", "pago"].includes((i.status || "").toLowerCase()));
+        
         if (aprovados.length === 0) {
           ulValores.innerHTML = `<li class="text-slate-400">Nenhum pagamento de horas extras aprovado.</li>`;
         } else {
           aprovados.forEach(i => {
             const horas = Number(i.horas || 0);
-            const valor = (i.valor !== undefined && i.valor !== null)
-              ? Number(i.valor)
-              : horas * VALOR_HORA_EXTRA;
+            
+            // LÓGICA CORRIGIDA: usa o 'valorpago' ou 0 se não estiver definido
+            const valor = (i.valorpago !== undefined && i.valorpago !== null)
+              ? Number(i.valorpago)
+              : 0;
 
             totalHorasAprov += horas;
             totalRecebido += valor;
@@ -327,7 +399,7 @@
             const li = document.createElement("li");
             li.className = "bg-slate-900/60 border border-slate-700 rounded-lg p-2 flex justify-between";
             li.innerHTML = `
-              <span>${i.data ?? "-"} • ${horas}h ${i.valor == null ? "(calc.)" : ""}</span>
+              <span>${i.data ?? "-"} • ${horas}h ${i.valorpago == null ? "(não pago)" : ""}</span>
               <span class="font-semibold">${fmtBRL.format(valor)}</span>
             `;
             ulValores.appendChild(li);
@@ -409,8 +481,14 @@
         })();
       } catch (err) {
         console.error("Falha ao criar registro:", err);
-        alert("Erro ao enviar solicitação. Veja o console.");
+        alert("Ocorreu um erro ao enviar a solicitação. Veja o console.");
       }
+    });
+
+    // Evento de envio para o novo formulário de lembrete
+    formLembrete.addEventListener("submit", (e) => {
+        e.preventDefault();
+        sendReminder(inpDestinatario.value, inpMensagem.value);
     });
 
     // ==== Start ====
@@ -418,5 +496,4 @@
     checkAndRenderReminders();
   </script>
 </body>
-
 </html>
