@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Belo Vidro - Minhas Tarefas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #1a202c; /* Cor de fundo escura */
+            color: #e2e8f0; /* Texto claro */
+        }
+        .sidebar {
+            background-color: #2d3748; /* Cor da barra lateral */
+        }
+        .main-content {
+            background-color: #2d3748; /* Cor do container principal */
+        }
+        .btn-active {
+            background-color: #48bb78; /* Verde */
+            color: white;
+        }
+        .btn-inactive {
+            background-color: #4a5568; /* Cinza escuro */
+            color: #e2e8f0;
+        }
+        .tarefa-pendente {
+            color: #f6ad55; /* Laranja */
+        }
+        .tarefa-andamento {
+            color: #63b3ed; /* Azul */
+        }
+        .tarefa-concluida {
+            color: #48bb78; /* Verde */
+        }
+    </style>
+</head>
+<body class="flex min-h-screen">
+    <aside class="sidebar w-64 p-6 flex flex-col items-center">
+        <h1 class="text-2xl font-bold mb-8 text-green-400">Belo Vidro</h1>
+        <div class="user-info text-center mb-8">
+            <h2 class="text-lg font-semibold" id="nomeUsuario"></h2>
+            <p class="text-sm text-gray-400">PAINEL DO FUNCIONÁRIO</p>
+        </div>
+        <nav class="flex flex-col w-full space-y-4">
+            <a href="painel%20do%20funcionario.html" class="flex items-center px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-700">
+                <span class="mr-3">📄</span> Inicio
+            </a>
+            <a href="painel%20de%20rotas.html" class="flex items-center px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-700">
+                <span class="mr-3">🗺️</span> Minhas Rotas
+            </a>
+            <button id="btnSair" class="flex items-center px-4 py-2 rounded-lg text-red-400 hover:bg-gray-700 mt-auto">
+                <span class="mr-3">🚪</span> Sair
+            </button>
+        </nav>
+    </aside>
+
+    <main class="flex-1 p-8">
+        <h2 class="text-2xl font-bold text-green-400 mb-6">Minhas Tarefas</h2>
+        
+        <div class="mb-4">
+            <button id="btnPendentes" class="btn-active px-4 py-2 rounded-lg mr-2">Pendentes</button>
+            <button id="btnEmAndamento" class="btn-inactive px-4 py-2 rounded-lg mr-2">Em Andamento</button>
+            <button id="btnConcluidas" class="btn-inactive px-4 py-2 rounded-lg mr-2">Concluídas</button>
+            <button id="btnTodas" class="btn-inactive px-4 py-2 rounded-lg">Todas</button>
+        </div>
+
+        <div class="overflow-x-auto main-content p-6 rounded-lg">
+            <table class="w-full">
+                <thead>
+                    <tr class="text-left text-gray-400 border-b border-gray-600">
+                        <th class="px-4 py-2">Tarefa Registrada</th>
+                        <th class="px-4 py-2">Prazo</th>
+                        <th class="px-4 py-2">Status</th>
+                        <th class="px-4 py-2">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="listaTarefasFuncionario" class="divide-y divide-gray-700">
+                    <tr><td colspan="4" class="text-center py-4">Carregando suas tarefas...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+        import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+
+        // Configuração do Firebase
+        const firebaseConfig = {
+            databaseURL: "https://belo-vidro-banco-de-dados-default-rtdb.firebaseio.com/",
+        };
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const dbRef = ref(database, 'tarefas');
+
+        // Referências aos elementos HTML
+        const listaTarefasFuncionario = document.getElementById('listaTarefasFuncionario');
+        const nomeUsuarioElement = document.getElementById('nomeUsuario');
+
+        // Funções auxiliares
+        function protect() {
+            const session = localStorage.getItem("bv.session");
+            if (!session) {
+                window.location.href = "/index.html";
+                return;
+            }
+        }
+        
+        function normalizaNome(nome) {
+            return nome.toLowerCase().trim();
+        }
+
+        function getLoggedUserName() {
+            try {
+                const session = JSON.parse(localStorage.getItem("bv.session"));
+                if (session && session.name) {
+                    return session.name;
+                }
+            } catch (e) {
+                console.error("Erro ao ler a sessão:", e);
+            }
+            return null;
+        }
+
+        // Lógica da página
+        let todasTarefas = [];
+        let statusAtual = 'pendentes';
+
+        protect();
+        const nomeFuncionarioLogado = getLoggedUserName();
+        if (nomeFuncionarioLogado) {
+            nomeUsuarioElement.textContent = nomeFuncionarioLogado;
+        }
+
+        onValue(dbRef, (snapshot) => {
+            listaTarefasFuncionario.innerHTML = '';
+            todasTarefas = [];
+
+            if (snapshot.exists()) {
+                const tarefas = snapshot.val();
+                const nomeNormalizado = normalizaNome(nomeFuncionarioLogado);
+                
+                for (let id in tarefas) {
+                    const tarefa = tarefas[id];
+                    if (normalizaNome(tarefa.funcionario) === nomeNormalizado) {
+                        todasTarefas.push({ ...tarefa, id });
+                    }
+                }
+
+                exibirTarefasPorStatus(statusAtual);
+            } else {
+                listaTarefasFuncionario.innerHTML = '<tr><td colspan="4" class="text-center py-4">Nenhuma tarefa encontrada.</td></tr>';
+            }
+        }, {
+            onlyOnce: false
+        });
+
+        function exibirTarefasPorStatus(status) {
+            const tarefasFiltradas = todasTarefas.filter(tarefa => {
+                if (status === 'todas') {
+                    return true;
+                }
+                return normalizaNome(tarefa.status) === normalizaNome(status);
+            });
+
+            if (tarefasFiltradas.length > 0) {
+                listaTarefasFuncionario.innerHTML = tarefasFiltradas.map(tarefa => {
+                    const statusClass = getStatusClass(tarefa.status);
+                    const isPendente = normalizaNome(tarefa.status) === 'pendente';
+                    const isAndamento = normalizaNome(tarefa.status) === 'em andamento';
+                    
+                    return `
+                        <tr>
+                            <td class="px-4 py-3">${tarefa.descricao}</td>
+                            <td class="px-4 py-3">${tarefa.prazo}</td>
+                            <td class="px-4 py-3">
+                                <span class="${statusClass}">${tarefa.status}</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                ${isPendente ? `<button class="text-white bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded-md" onclick="mudarStatus('${tarefa.id}', 'Em Andamento')">Iniciar</button>` : ''}
+                                ${isAndamento ? `<button class="text-white bg-green-500 hover:bg-green-600 px-3 py-1 rounded-md" onclick="mudarStatus('${tarefa.id}', 'Concluída')">Concluir</button>` : ''}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                listaTarefasFuncionario.innerHTML = `<tr><td colspan="4" class="text-center py-4">Nenhuma tarefa ${status === 'todas' ? '' : status}.</td></tr>`;
+            }
+        }
+        
+        function getStatusClass(status) {
+            const statusNormalizado = normalizaNome(status);
+            if (statusNormalizado === 'pendente') {
+                return 'tarefa-pendente';
+            }
+            if (statusNormalizado === 'em andamento') {
+                return 'tarefa-andamento';
+            }
+            if (statusNormalizado === 'concluída') {
+                return 'tarefa-concluida';
+            }
+            return '';
+        }
+
+        window.mudarStatus = (id, novoStatus) => {
+            const tarefaRef = ref(database, `tarefas/${id}`);
+            update(tarefaRef, { status: novoStatus })
+                .then(() => {
+                    alert(`Status da tarefa alterado para ${novoStatus} com sucesso!`);
+                })
+                .catch(error => {
+                    console.error("Erro ao atualizar o status:", error);
+                    alert("Erro ao atualizar o status da tarefa.");
+                });
+        };
+
+        const buttons = {
+            pendentes: document.getElementById('btnPendentes'),
+            emAndamento: document.getElementById('btnEmAndamento'),
+            concluidas: document.getElementById('btnConcluidas'),
+            todas: document.getElementById('btnTodas')
+        };
+        
+        function atualizarBotoes(status) {
+            for (const key in buttons) {
+                buttons[key].classList.remove('btn-active');
+                buttons[key].classList.add('btn-inactive');
+            }
+            if (status === 'pendentes') buttons.pendentes.classList.remove('btn-inactive'); buttons.pendentes.classList.add('btn-active');
+            if (status === 'em andamento') buttons.emAndamento.classList.remove('btn-inactive'); buttons.emAndamento.classList.add('btn-active');
+            if (status === 'concluidas') buttons.concluidas.classList.remove('btn-inactive'); buttons.concluidas.classList.add('btn-active');
+            if (status === 'todas') buttons.todas.classList.remove('btn-inactive'); buttons.todas.classList.add('btn-active');
+        }
+
+        buttons.pendentes.addEventListener('click', () => { statusAtual = 'pendente'; exibirTarefasPorStatus(statusAtual); atualizarBotoes('pendentes'); });
+        buttons.emAndamento.addEventListener('click', () => { statusAtual = 'em andamento'; exibirTarefasPorStatus(statusAtual); atualizarBotoes('em andamento'); });
+        buttons.concluidas.addEventListener('click', () => { statusAtual = 'concluída'; exibirTarefasPorStatus(statusAtual); atualizarBotoes('concluidas'); });
+        buttons.todas.addEventListener('click', () => { statusAtual = 'todas'; exibirTarefasPorStatus(statusAtual); atualizarBotoes('todas'); });
+        
+        document.getElementById('btnSair').addEventListener('click', () => {
+            localStorage.removeItem("bv.session");
+            window.location.href = "/index.html";
+        });
+
+    </script>
+</body>
+</html>
