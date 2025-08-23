@@ -45,8 +45,8 @@
         (function protect(requiredRoles=["admin"]) {
             try {
                 const s = JSON.parse(localStorage.getItem("bv.session")||"null");
-                if (!s || !requiredRoles.includes(s.role)) location.replace("/longs/logns.html");
-            } catch(e){ location.replace("/longs/logns.html"); }
+                if (!s || !requiredRoles.includes(s.role)) location.replace("index.html");
+            } catch(e){ location.replace("index.html"); }
         })(["admin"]);
     </script>
 </head>
@@ -707,4 +707,5 @@
 </body>
 
 </html>
+
 
