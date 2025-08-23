@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Belo Vidro - Análise de Desempenho</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .custom-chart-container {
+            width: 48%;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+        }
+        .notification-bell-container {
+            position: relative;
+        }
+        .notification-dot {
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            height: 10px;
+            width: 10px;
+            background-color: red;
+            border-radius: 50%;
+            display: none; /* Inicia oculto */
+        }
+    </style>
+    <script>
+      (function protect(requiredRoles=["chefe", "admin"]) {
+        try {
+          const s = JSON.parse(localStorage.getItem("bv.session")||"null");
+          if (!s || !requiredRoles.includes(s.role)) location.replace("/logns/logns.html");
+        } catch(e){ location.replace("/logns/logns.html"); }
+      })();
+    </script>
+</head>
+<body class="bg-gray-100 flex h-screen">
+
+    <script>
+        function logout() {
+            localStorage.removeItem("bv.session");
+            window.location.replace("/logns/logns.html");
+        }
+    </script>
+
+    <aside class="w-64 bg-white shadow-md p-4">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold">Controle do Chefe</h2>
+            <div class="notification-bell-container">
+                <button onclick="toggleModal('notificationModal')" class="relative text-gray-800 hover:text-orange-600 focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405C18.21 14.73 18 13.918 18 13V6a6 6 0 00-12 0v7c0 .918-.21 1.73-.595 2.595L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9" />
+                    </svg>
+                    <span id="notificationDot" class="notification-dot"></span>
+                </button>
+            </div>
+        </div>
+        <nav class="space-y-3">
+             <a href="/adm/relatorio-gastos.html">
+            <button class="w-full flex items-center p-3 bg-green-100 rounded-lg">📋 Relatorio de Gastos</button></a>
+            <a href="/adm/desempelho.html"><button class="w-full flex items-center p-3 bg-orange-100 rounded-lg">⭐ Desempelho</button>
+            </a>
+            <a href="/adm/TAREFAS.html"><button class="w-full flex items-center p-3 bg-red-100 rounded-lg">📅 Tarefas</button></a>
+            <a href="/adm/ROTAS.html"><button class="w-full flex items-center p-3 bg-blue-100 rounded-lg">🗺️ Rotas</button></a>
+            <a href="/adm/painel%20adm.html"><button id="btnExtraHours" class="w-full flex items-center p-3 bg-purple-100 rounded-lg">⏱ Extra Hours</button></a>
+            <div class="mt-auto">
+                <button onclick="logout()" class=" w-full flex items-center justify-center bg-green-800 hover:bg-slate-300 text-slate-800 py-2 px-4 rounded-lg transition font-medium">
+                    Sair
+                </button>
+            </div> 
+        </nav>
+    </aside>
+
+    <main class="flex-1 p-6">
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-orange-600">Análise de Desempenho</h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-gray-600" id="nomeUsuario"></span>
+                <img src="https://via.placeholder.com/40" class="rounded-full" alt="User" />
+            </div>
+        </header>
+
+        <div class="mb-6">
+            <label for="monthFilter" class="block text-gray-700 font-bold mb-2">Filtrar por Mês:</label>
+            <select id="monthFilter" class="bg-white p-2 border rounded-lg shadow w-48 text-gray-800">
+                <option value="all">Todos os Meses</option>
+                <option value="1">Janeiro</option>
+                <option value="2">Fevereiro</option>
+                <option value="3">Março</option>
+                <option value="4">Abril</option>
+                <option value="5">Maio</option>
+                <option value="6">Junho</option>
+                <option value="7">Julho</option>
+                <option value="8">Agosto</option>
+                <option value="9">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+            </select>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-6 mb-6">
+            <div onclick="showMetrics('rotas')" class="cursor-pointer bg-white p-6 rounded-lg shadow-lg text-center flex-1">
+                <h3 class="text-xl font-semibold mb-2 text-gray-800">Rotas</h3>
+            </div>
+            <div onclick="showMetrics('tarefas')" class="cursor-pointer bg-white p-6 rounded-lg shadow-lg text-center flex-1">
+                <h3 class="text-xl font-semibold mb-2 text-gray-800">Tarefas</h3>
+            </div>
+        </div>
+
+        <div id="rotasContent" class="hidden">
+            <div class="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h3 class="text-gray-500">Total de Rotas</h3>
+                    <p id="totalRotas" class="text-xl font-bold text-blue-600">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h3 class="text-gray-500">Rotas Concluídas</h3>
+                    <p id="rotasConcluidas" class="text-xl font-bold text-green-600">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h3 class="text-gray-500">Rotas Pendentes</h3>
+                    <p id="rotasPendentes" class="text-xl font-bold text-red-600">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h3 class="text-gray-500">Total de Etapas</h3>
+                    <p id="totalEtapas" class="text-xl font-bold text-purple-600">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h3 class="text-gray-500">Etapas Concluídas</h3>
+                    <p id="etapasConcluidas" class="text-xl font-bold text-green-600">0</p>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Desempenho por Funcionário (Rotas)</h3>
+                <div class="space-y-4" id="desempenhoRotasContainer"></div>
+            </div>
+        </div>
+
+        <div id="tarefasContent" class="hidden">
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h3 class="text-gray-500">Total de Tarefas</h3>
+                    <p id="totalTarefas" class="text-xl font-bold text-blue-600">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h3 class="text-gray-500">Tarefas Concluídas</h3>
+                    <p id="tarefasConcluidas" class="text-xl font-bold text-green-600">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h3 class="text-gray-500">Tarefas Pendentes</h3>
+                    <p id="tarefasPendentes" class="text-xl font-bold text-red-600">0</p>
+                </div>
+                 <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h3 class="text-gray-500">Tarefas em Andamento</h3>
+                    <p id="tarefasEmAndamento" class="text-xl font-bold text-orange-600">0</p>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Desempenho por Funcionário (Tarefas)</h3>
+                <div class="space-y-4" id="desempenhoTarefasContainer"></div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-start gap-6 mt-10">
+            <div class="custom-chart-container bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Feitas vs. Solicitadas</h3>
+                <label for="lineChartFilter" class="block text-gray-700 font-bold mb-2">Filtrar por Funcionário:</label>
+                <select id="lineChartFilter" class="bg-white p-2 border rounded-lg shadow w-full mb-4 text-gray-800">
+                    <option value="all">Todos os Funcionários</option>
+                </select>
+                <canvas id="lineChart"></canvas>
+            </div>
+            <div class="custom-chart-container bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Desempenho por Funcionário</h3>
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <div id="notificationModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Lembretes e Notificações</h2>
+            <div class="flex justify-end">
+                <button onclick="toggleModal('notificationModal')" class="text-gray-500 hover:text-gray-800">Fechar</button>
+            </div>
+            
+            <div class="mb-6">
+                <h3 class="font-semibold text-lg mb-2">Enviar um Lembrete</h3>
+                <div class="flex flex-col space-y-2">
+                    <label for="recipientSelect" class="text-sm text-gray-600">Para:</label>
+                    <select id="recipientSelect" class="p-2 border rounded-lg w-full"></select>
+                    <label for="reminderDescription" class="text-sm text-gray-600">Mensagem:</label>
+                    <textarea id="reminderDescription" class="p-2 border rounded-lg w-full" rows="3"></textarea>
+                    <button onclick="sendReminder()" class="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Enviar Lembrete</button>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-lg mb-2">Lembretes Recebidos</h3>
+                <div id="receivedRemindersContainer" class="space-y-4">
+                    <div class="text-gray-500">Nenhum lembrete recebido.</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+        import { getDatabase, ref, onValue, push, set, update } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+
+        const sessao = JSON.parse(localStorage.getItem("bv.session") || "null");
+        document.getElementById("nomeUsuario").textContent = sessao?.name || "Chefe";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQGXH3b2bMR7ZdKPZm-vPONKijkRw-Xgg",
+            authDomain: "belo-vidro-banco-de-dados.firebaseapp.com",
+            projectId: "belo-vidro-banco-de-dados",
+            storageBucket: "belo-vidro-banco-de-dados.firebasestorage.app",
+            messagingSenderId: "705873952615",
+            appId: "1:705873952615:web:83613fd5d2839aad66b9c2",
+            databaseURL: "https://belo-vidro-banco-de-dados-default-rtdb.firebaseio.com"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        
+        // Referências HTML
+        const totalRotasEl = document.getElementById("totalRotas");
+        const rotasConcluidasEl = document.getElementById("rotasConcluidas");
+        const rotasPendentesEl = document.getElementById("rotasPendentes");
+        const totalEtapasEl = document.getElementById("totalEtapas");
+        const etapasConcluidasEl = document.getElementById("etapasConcluidas");
+        const desempenhoRotasContainer = document.getElementById("desempenhoRotasContainer");
+        const totalTarefasEl = document.getElementById("totalTarefas");
+        const tarefasConcluidasEl = document.getElementById("tarefasConcluidas");
+        const tarefasPendentesEl = document.getElementById("tarefasPendentes");
+        const tarefasEmAndamentoEl = document.getElementById("tarefasEmAndamento");
+        const desempenhoTarefasContainer = document.getElementById("desempenhoTarefasContainer");
+        const rotasContent = document.getElementById('rotasContent');
+        const tarefasContent = document.getElementById('tarefasContent');
+        const monthFilter = document.getElementById('monthFilter');
+        const lineChartFilter = document.getElementById('lineChartFilter');
+        const lineChartCanvas = document.getElementById('lineChart').getContext('2d');
+        const barChartCanvas = document.getElementById('barChart').getContext('2d');
+        const notificationModal = document.getElementById('notificationModal');
+        const receivedRemindersContainer = document.getElementById('receivedRemindersContainer');
+        const recipientSelect = document.getElementById('recipientSelect');
+        const reminderDescription = document.getElementById('reminderDescription');
+        const notificationDot = document.getElementById('notificationDot');
+        
+        let lineChart;
+        let barChart;
+        let allRotas = {};
+        let allTarefas = {};
+        let allUsers = {};
+        let desempenhoTotal = {};
+
+        // Event Listeners
+        monthFilter.addEventListener('change', () => processAndRenderAll());
+        lineChartFilter.addEventListener('change', () => updateLineChart());
+        
+        // Funções do Modal de Notificações
+        window.toggleModal = (modalId) => {
+            const modal = document.getElementById(modalId);
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+            if (modal.style.display === 'flex') {
+                checkAndRenderReminders();
+            }
+        };
+
+        window.sendReminder = () => {
+            const recipient = recipientSelect.value;
+            const message = reminderDescription.value;
+            if (!recipient || !message) {
+                alert("Por favor, selecione um destinatário e escreva uma mensagem.");
+                return;
+            }
+            const newReminderRef = push(ref(db, 'lembrete'));
+            set(newReminderRef, {
+                remetente: sessao.name,
+                destinatario: recipient,
+                mensagem: message,
+                lido: "não", // Valor fixo para o status lido
+                timestamp: Date.now()
+            }).then(() => {
+                alert("Lembrete enviado!");
+                reminderDescription.value = "";
+                toggleModal('notificationModal');
+            }).catch(error => {
+                console.error("Erro ao enviar lembrete:", error);
+                alert("Erro ao enviar lembrete. Tente novamente.");
+            });
+        };
+
+        window.markAsRead = (reminderId) => {
+            update(ref(db, `lembrete/${reminderId}`), {lido: "sim"})
+                .then(() => console.log("Lembrete marcado como lido"))
+                .catch(error => console.error("Erro ao marcar como lido:", error));
+        };
+
+        function checkAndRenderReminders() {
+            onValue(ref(db, 'lembrete'), (snapshot) => {
+                const notifications = snapshot.val() || {};
+                const remindersForMe = Object.entries(notifications).filter(([id, notif]) => {
+                    const validRecipients = ['chefe', 'wagner'];
+                    return notif.destinatario && 
+                           validRecipients.includes(notif.destinatario.toLowerCase()) && 
+                           notif.lido === "não";
+                });
+                
+                receivedRemindersContainer.innerHTML = '';
+                if (remindersForMe.length === 0) {
+                    receivedRemindersContainer.innerHTML = '<div class="text-gray-500">Nenhum lembrete recebido do Chefe.</div>';
+                    notificationDot.style.display = 'none';
+                } else {
+                    remindersForMe.forEach(([id, notif]) => {
+                        const reminderCard = document.createElement('div');
+                        reminderCard.className = `p-4 rounded-lg border bg-white text-gray-800 border-orange-500`;
+                        reminderCard.innerHTML = `
+                            <p><strong>De:</strong> ${notif.remetente}</p>
+                            <p>${notif.mensagem}</p>
+                            <p class="text-xs mt-2 text-gray-400">${new Date(notif.timestamp).toLocaleString()}</p>
+                            <button onclick="markAsRead('${id}')" class="mt-2 text-blue-500 hover:text-blue-700">Marcar como lido</button>
+                        `;
+                        receivedRemindersContainer.prepend(reminderCard);
+                    });
+                    notificationDot.style.display = 'block';
+                }
+            });
+        }
+        
+        function popularDestinatarios() {
+            const destinatarios = ["Chefe", "Kaio", "Edclenio", "Fabiano", "Hercules", "Iago", "Jeferson", "Junior"];
+            
+            recipientSelect.innerHTML = '';
+            destinatarios.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                recipientSelect.appendChild(option);
+            });
+        }
+
+        window.showMetrics = (type) => {
+            if (type === 'rotas') {
+                rotasContent.classList.remove('hidden');
+                tarefasContent.classList.add('hidden');
+                renderizarDadosRotas(filterByMonth(allRotas, monthFilter.value), desempenhoTotal);
+            } else if (type === 'tarefas') {
+                tarefasContent.classList.remove('hidden');
+                rotasContent.classList.add('hidden');
+                renderizarDadosTarefas(filterByMonth(allTarefas, monthFilter.value), desempenhoTotal);
+            }
+        };
+
+        function processAndRenderAll() {
+            const selectedMonth = monthFilter.value;
+            const filteredRotas = filterByMonth(allRotas, selectedMonth);
+            const filteredTarefas = filterByMonth(allTarefas, selectedMonth);
+
+            desempenhoTotal = {};
+            
+            // Analisar Rotas
+            for (const rotaId in filteredRotas) {
+                const rota = filteredRotas[rotaId];
+                if (rota.funcionario) {
+                    const nomeFunc = rota.funcionario;
+                    if (!desempenhoTotal[nomeFunc]) {
+                        desempenhoTotal[nomeFunc] = {
+                            rotasSolicitadas: 0, rotasFeitas: 0, tarefasSolicitadas: 0, tarefasFeitas: 0,
+                        };
+                    }
+                    desempenhoTotal[nomeFunc].rotasSolicitadas++;
+                    const etapas = Object.values(rota.etapas || {});
+                    const numEtapasNaRota = etapas.length;
+                    const numEtapasConcluidasNaRota = etapas.filter(e => e.status === 'concluido').length;
+                    if (numEtapasConcluidasNaRota === numEtapasNaRota && numEtapasNaRota > 0) {
+                        desempenhoTotal[nomeFunc].rotasFeitas++;
+                    }
+                }
+            }
+
+            // Analisar Tarefas
+            for (const tarefaId in filteredTarefas) {
+                const tarefa = filteredTarefas[tarefaId];
+                if (tarefa.funcionario) {
+                    const nomeFunc = tarefa.funcionario;
+                    if (!desempenhoTotal[nomeFunc]) {
+                        desempenhoTotal[nomeFunc] = {
+                            rotasSolicitadas: 0, rotasFeitas: 0, tarefasSolicitadas: 0, tarefasFeitas: 0,
+                        };
+                    }
+                    desempenhoTotal[nomeFunc].tarefasSolicitadas++;
+                    if (tarefa.status === 'concluido' || tarefa.status === 'concluida') {
+                        desempenhoTotal[nomeFunc].tarefasFeitas++;
+                    }
+                }
+            }
+
+            // Renderizar gráficos e listas com dados filtrados
+            renderizarGraficos();
+            showMetrics(rotasContent.classList.contains('hidden') ? 'tarefas' : 'rotas');
+        }
+
+        function filterByMonth(data, month) {
+            if (month === 'all') {
+                return data;
+            }
+            const filteredData = {};
+            for (const key in data) {
+                const item = data[key];
+                if (item.prazo) {
+                    const itemMonth = new Date(item.prazo).getMonth() + 1; // getMonth() é base 0
+                    if (itemMonth.toString() === month) {
+                        filteredData[key] = item;
+                    }
+                }
+            }
+            return filteredData;
+        }
+
+        function renderizarDadosRotas(rotas) {
+            const desempenhoRotas = {};
+            let totalRotas = 0;
+            let rotasConcluidas = 0;
+            let rotasPendentes = 0;
+            let totalEtapas = 0;
+            let etapasConcluidas = 0;
+            let etapasEmAndamento = 0;
+            let etapasPendentes = 0;
+
+            for (const rotaId in rotas) {
+                const rota = rotas[rotaId];
+                if (rota.funcionario) {
+                    const nomeFunc = rota.funcionario;
+                    if (!desempenhoRotas[nomeFunc]) {
+                        desempenhoRotas[nomeFunc] = {
+                            totalRotas: 0, rotasConcluidas: 0, rotasPendentes: 0,
+                            totalEtapas: 0, etapasConcluidas: 0, etapasEmAndamento: 0, etapasPendentes: 0
+                        };
+                    }
+                    totalRotas++;
+                    desempenhoRotas[nomeFunc].totalRotas++;
+                    const etapas = Object.values(rota.etapas || {});
+                    const numEtapasNaRota = etapas.length;
+                    const numEtapasConcluidasNaRota = etapas.filter(e => e.status === 'concluido').length;
+                    const numEtapasAndamentoNaRota = etapas.filter(e => e.status === 'andamento').length;
+                    totalEtapas += numEtapasNaRota;
+                    etapasConcluidas += numEtapasConcluidasNaRota;
+                    etapasEmAndamento += numEtapasAndamentoNaRota;
+                    etapasPendentes += (numEtapasNaRota - numEtapasConcluidasNaRota - numEtapasAndamentoNaRota);
+                    desempenhoRotas[nomeFunc].totalEtapas += numEtapasNaRota;
+                    desempenhoRotas[nomeFunc].etapasConcluidas += numEtapasConcluidasNaRota;
+                    desempenhoRotas[nomeFunc].etapasEmAndamento += numEtapasAndamentoNaRota;
+                    desempenhoRotas[nomeFunc].etapasPendentes += (numEtapasNaRota - numEtapasConcluidasNaRota - numEtapasAndamentoNaRota);
+                    if (numEtapasConcluidasNaRota === numEtapasNaRota && numEtapasNaRota > 0) {
+                        rotasConcluidas++;
+                        desempenhoRotas[nomeFunc].rotasConcluidas++;
+                    } else if (numEtapasConcluidasNaRota > 0 || numEtapasAndamentoNaRota > 0) {
+                    } else {
+                        rotasPendentes++;
+                        desempenhoRotas[nomeFunc].rotasPendentes++;
+                    }
+                }
+            }
+            totalRotasEl.textContent = totalRotas;
+            rotasConcluidasEl.textContent = rotasConcluidas;
+            rotasPendentesEl.textContent = rotasPendentes;
+            totalEtapasEl.textContent = totalEtapas;
+            etapasConcluidasEl.textContent = etapasConcluidas;
+            desempenhoRotasContainer.innerHTML = '';
+            for (const nomeFuncionario in desempenhoRotas) {
+                const dados = desempenhoRotas[nomeFuncionario];
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-lg shadow flex justify-between items-center";
+                card.innerHTML = `
+                    <div class="text-gray-800">
+                        <h4 class="font-bold text-lg">${nomeFuncionario}</h4>
+                        <div class="text-sm text-gray-600">Total de Rotas: ${dados.totalRotas}</div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="text-center text-green-600">
+                            <div class="font-bold text-xl">${dados.rotasConcluidas}</div>
+                            <div class="text-xs text-gray-500">Rotas Concluídas</div>
+                        </div>
+                        <div class="text-center text-green-600">
+                            <div class="font-bold text-xl">${dados.etapasConcluidas}</div>
+                            <div class="text-xs text-gray-500">Etapas Concluídas</div>
+                        </div>
+                        <div class="text-center text-orange-600">
+                            <div class="font-bold text-xl">${dados.etapasEmAndamento}</div>
+                            <div class="text-xs text-gray-500">Etapas Em Andamento</div>
+                        </div>
+                        <div class="text-center text-red-600">
+                            <div class="font-bold text-xl">${dados.etapasPendentes}</div>
+                            <div class="text-xs text-gray-500">Etapas Pendentes</div>
+                        </div>
+                    </div>
+                `;
+                desempenhoRotasContainer.appendChild(card);
+            }
+        }
+
+        function renderizarDadosTarefas(tarefas) {
+            const desempenhoTarefas = {};
+            let totalTarefas = 0;
+            let tarefasConcluidas = 0;
+            let tarefasPendentes = 0;
+            let tarefasEmAndamento = 0;
+            for (const tarefaId in tarefas) {
+                const tarefa = tarefas[tarefaId];
+                if (tarefa.funcionario) {
+                    const nomeFunc = tarefa.funcionario;
+                    if (!desempenhoTarefas[nomeFunc]) {
+                        desempenhoTarefas[nomeFunc] = {
+                            total: 0, concluidas: 0, pendentes: 0, emAndamento: 0
+                        };
+                    }
+                    totalTarefas++;
+                    desempenhoTarefas[nomeFunc].total++;
+                    if (tarefa.status === 'concluido' || tarefa.status === 'concluida') {
+                        tarefasConcluidas++;
+                        desempenhoTarefas[nomeFunc].concluidas++;
+                    } else if (tarefa.status === 'andamento') {
+                        tarefasEmAndamento++;
+                        desempenhoTarefas[nomeFunc].emAndamento++;
+                    } else {
+                        tarefasPendentes++;
+                        desempenhoTarefas[nomeFunc].pendentes++;
+                    }
+                }
+            }
+            totalTarefasEl.textContent = totalTarefas;
+            tarefasConcluidasEl.textContent = tarefasConcluidas;
+            tarefasPendentesEl.textContent = tarefasPendentes;
+            tarefasEmAndamentoEl.textContent = tarefasEmAndamento;
+            desempenhoTarefasContainer.innerHTML = '';
+            for (const nomeFuncionario in desempenhoTarefas) {
+                const dados = desempenhoTarefas[nomeFuncionario];
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-lg shadow flex justify-between items-center";
+                card.innerHTML = `
+                    <div class="text-gray-800">
+                        <h4 class="font-bold text-lg">${nomeFuncionario}</h4>
+                        <div class="text-sm text-gray-600">Total de Tarefas: ${dados.total}</div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="text-center text-green-600">
+                            <div class="font-bold text-xl">${dados.concluidas}</div>
+                            <div class="text-xs text-gray-500">Concluídas</div>
+                        </div>
+                        <div class="text-center text-orange-600">
+                            <div class="font-bold text-xl">${dados.emAndamento}</div>
+                            <div class="text-xs text-gray-500">Em Andamento</div>
+                        </div>
+                        <div class="text-center text-red-600">
+                            <div class="font-bold text-xl">${dados.pendentes}</div>
+                            <div class="text-xs text-gray-500">Pendentes</div>
+                        </div>
+                    </div>
+                `;
+                desempenhoTarefasContainer.appendChild(card);
+            }
+        }
+
+        function renderizarGraficos() {
+            const funcionarios = Object.keys(desempenhoTotal);
+            lineChartFilter.innerHTML = '<option value="all">Todos os Funcionários</option>';
+            funcionarios.forEach(func => {
+                const option = document.createElement('option');
+                option.value = func;
+                option.textContent = func;
+                lineChartFilter.appendChild(option);
+            });
+            const totalFeitos = funcionarios.map(f => desempenhoTotal[f].rotasFeitas + desempenhoTotal[f].tarefasFeitas);
+            if (barChart) barChart.destroy();
+            barChart = new Chart(barChartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: funcionarios,
+                    datasets: [{
+                        label: 'Total Concluído (Rotas + Tarefas)',
+                        data: totalFeitos,
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+            updateLineChart();
+        }
+        
+        function updateLineChart() {
+            const selectedEmployee = lineChartFilter.value;
+            let rotasData = [];
+            let tarefasData = [];
+            let labels = [];
+
+            if (selectedEmployee === 'all') {
+                labels = Object.keys(desempenhoTotal);
+                rotasData = labels.map(f => desempenhoTotal[f].rotasFeitas);
+                tarefasData = labels.map(f => desempenhoTotal[f].tarefasFeitas);
+            } else {
+                labels = ["Tarefas", "Rotas"];
+                rotasData = [desempenhoTotal[selectedEmployee]?.rotasFeitas || 0];
+                tarefasData = [desempenhoTotal[selectedEmployee]?.tarefasFeitas || 0];
+            }
+
+            if (lineChart) lineChart.destroy();
+            lineChart = new Chart(lineChartCanvas, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Rotas Concluídas',
+                            data: rotasData,
+                            borderColor: 'rgb(34, 197, 94)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Tarefas Concluídas',
+                            data: tarefasData,
+                            borderColor: 'rgb(250, 204, 21)',
+                            backgroundColor: 'rgba(250, 204, 21, 0.2)',
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: selectedEmployee === 'all' ? 'Funcionário' : 'Tipo' } },
+                        y: { beginAtZero: true, title: { display: true, text: 'Quantidade' } }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function carregarDados() {
+            popularDestinatarios();
+            
+            const rotasRef = ref(db, "rotas");
+            const tarefasRef = ref(db, "tarefas");
+            
+            onValue(rotasRef, (snapshot) => {
+                allRotas = snapshot.val() || {};
+                processAndRenderAll();
+            });
+
+            onValue(tarefasRef, (snapshot) => {
+                allTarefas = snapshot.val() || {};
+                processAndRenderAll();
+            });
+            
+            checkAndRenderReminders();
+        }
+
+        carregarDados();
+        showMetrics('rotas');
+    </script>
+</body>
+</html>

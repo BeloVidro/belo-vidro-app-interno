@@ -1,0 +1,287 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel - Rotas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex h-screen">
+
+    <aside class="w-64 bg-white shadow-md p-4">
+        <h2 class="text-xl font-bold mb-6">Painel ADM</h2>
+        <nav class="space-y-3">
+           <a href="/adm/relatorio-gastos.html">
+            <button class="w-full flex items-center p-3 bg-green-100 rounded-lg">📋 Relatorio de Gastos</button></a>
+            <a href="/adm/desempelho.html"><button class="w-full flex items-center p-3 bg-orange-100 rounded-lg">⭐ Desempelho</button>
+            </a>
+            <a href="/adm/TAREFAS.html"><button class="w-full flex items-center p-3 bg-red-100 rounded-lg">📅 Tarefas</button></a>
+            <a href="/adm/ROTAS.html"><button class="w-full flex items-center p-3 bg-blue-100 rounded-lg">🗺️ Rotas</button></a>
+            <a href="/adm/painel%20adm.html"><button id="btnExtraHours" class="w-full flex items-center p-3 bg-purple-100 rounded-lg">⏱ Extra Hours</button></a>
+            <div class="mt-auto">
+                <button onclick="logout()" class=" w-full flex items-center justify-center bg-green-800 hover:bg-slate-300 text-slate-800 py-2 px-4 rounded-lg transition font-medium">
+                    Sair
+                </button>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="flex-1 p-6 overflow-y-auto">
+        <h1 class="text-2xl font-bold mb-4">Gerenciar Rotas</h1>
+
+        <div class="bg-white p-4 rounded-lg shadow mb-6">
+            <h2 class="text-lg font-semibold mb-2">Criar nova rota</h2>
+            <form id="rotaForm" class="space-y-3">
+                <input type="text" id="funcionario" placeholder="Funcionário responsável" class="w-full p-2 border rounded">
+                <input type="date" id="data" class="w-full p-2 border rounded">
+
+                <div id="etapasContainer" class="space-y-2">
+                    <div class="flex space-x-2 etapa">
+                        <input type="text" placeholder="Local" class="w-1/3 p-2 border rounded etapa-local">
+                        <input type="text" placeholder="Descrição" class="w-1/2 p-2 border rounded etapa-desc">
+                        <select class="p-2 border rounded etapa-status">
+                            <option value="pendente">Pendente</option>
+                            <option value="andamento">Em andamento</option>
+                            <option value="concluido">Concluído</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="button" id="addEtapa" class="bg-gray-200 px-3 py-1 rounded">+ Adicionar etapa</button>
+                <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">Salvar rota</button>
+            </form>
+        </div>
+
+        <div class="bg-white p-4 rounded-lg shadow">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold">Rotas criadas</h2>
+                <div class="space-x-2">
+                    <button id="filter-all" class="bg-gray-300 text-gray-800 px-3 py-1 rounded text-sm">Todas</button>
+                    <button id="filter-today" class="bg-gray-300 text-gray-800 px-3 py-1 rounded text-sm">Hoje</button>
+                    <button id="filter-week" class="bg-gray-300 text-gray-800 px-3 py-1 rounded text-sm">Esta Semana</button>
+                </div>
+            </div>
+            <div id="rotasList" class="space-y-4"></div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+        import { getDatabase, ref, set, get, update, remove } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQGXH3b2bMR7ZdKPZm-vPONKijkRw-Xgg",
+            authDomain: "belo-vidro-banco-de-dados.firebaseapp.com",
+            databaseURL: "https://belo-vidro-banco-de-dados-default-rtdb.firebaseio.com/",
+            projectId: "belo-vidro-banco-de-dados",
+            storageBucket: "belo-vidro-banco-de-dados.firebasestorage.app",
+            messagingSenderId: "705873952615",
+            appId: "1:705873952615:web:83613fd5d2839aad66b9c2"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const form = document.getElementById("rotaForm");
+        const etapasContainer = document.getElementById("etapasContainer");
+        const rotasList = document.getElementById("rotasList");
+        const addEtapaBtn = document.getElementById("addEtapa");
+
+        // Elementos dos filtros
+        const filterAllBtn = document.getElementById("filter-all");
+        const filterTodayBtn = document.getElementById("filter-today");
+        const filterWeekBtn = document.getElementById("filter-week");
+
+        // Adicionar nova etapa no formulário
+        addEtapaBtn.addEventListener("click", () => {
+            const div = document.createElement("div");
+            div.classList.add("flex", "space-x-2", "etapa");
+            div.innerHTML = `
+                <input type="text" placeholder="Local" class="w-1/3 p-2 border rounded etapa-local">
+                <input type="text" placeholder="Descrição" class="w-1/2 p-2 border rounded etapa-desc">
+                <select class="p-2 border rounded etapa-status">
+                    <option value="pendente">Pendente</option>
+                    <option value="andamento">Em andamento</option>
+                    <option value="concluido">Concluído</option>
+                </select>
+            `;
+            etapasContainer.appendChild(div);
+        });
+
+        // Salvar rota
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const funcionario = document.getElementById("funcionario").value;
+            const data = document.getElementById("data").value;
+
+            let etapas = [];
+            document.querySelectorAll(".etapa").forEach(div => {
+                etapas.push({
+                    local: div.querySelector(".etapa-local").value,
+                    descricao: div.querySelector(".etapa-desc").value,
+                    status: div.querySelector(".etapa-status").value
+                });
+            });
+
+            // Definir próximo registro
+            const snapshot = await get(ref(db, "rotas"));
+            const num = snapshot.exists() ? Object.keys(snapshot.val()).length + 1 : 1;
+            const registro = "registro" + num;
+
+            set(ref(db, "rotas/" + registro), {
+                funcionario, data, etapas
+            });
+
+            form.reset();
+            etapasContainer.innerHTML = "";
+            addEtapaBtn.click();
+            carregarRotas('all');
+        });
+
+        // Exibir rotas com filtro e opção de minimizar
+        async function carregarRotas(filtro = 'all') {
+            const snapshot = await get(ref(db, "rotas"));
+            rotasList.innerHTML = "";
+            if (snapshot.exists()) {
+                let rotas = snapshot.val();
+                
+                // Lógica de filtro
+                if (filtro !== 'all') {
+                    const hoje = new Date().toISOString().slice(0, 10);
+                    let startOfWeek = new Date();
+                    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+                    startOfWeek = startOfWeek.toISOString().slice(0, 10);
+
+                    rotas = Object.fromEntries(
+                        Object.entries(rotas).filter(([id, rota]) => {
+                            if (filtro === 'today') {
+                                return rota.data === hoje;
+                            }
+                            if (filtro === 'week') {
+                                return rota.data >= startOfWeek;
+                            }
+                            return true;
+                        })
+                    );
+                }
+
+                Object.entries(rotas).forEach(([id, rota]) => {
+                    const div = document.createElement("div");
+                    div.classList.add("border", "p-3", "rounded", "bg-gray-50");
+
+                    let etapasHTML = "";
+                    rota.etapas.forEach((etapa, idx) => {
+                        let cor = etapa.status === "pendente" ? "bg-yellow-200" :
+                                   etapa.status === "andamento" ? "bg-blue-200" : "bg-green-200";
+
+                        etapasHTML += `
+                            <div class="flex items-center justify-between p-2 border-b ${cor}">
+                                <div class="flex-1">
+                                    <input value="${etapa.local}" 
+                                           class="p-1 border rounded w-1/4 mr-1 etapa-local-edit" data-idx="${idx}" data-id="${id}">
+                                    <input value="${etapa.descricao}" 
+                                           class="p-1 border rounded w-1/2 mr-1 etapa-desc-edit" data-idx="${idx}" data-id="${id}">
+                                    <select class="p-1 border rounded etapa-status-edit" data-idx="${idx}" data-id="${id}">
+                                        <option value="pendente" ${etapa.status === "pendente" ? "selected" : ""}>Pendente</option>
+                                        <option value="andamento" ${etapa.status === "andamento" ? "selected" : ""}>Em andamento</option>
+                                        <option value="concluido" ${etapa.status === "concluido" ? "selected" : ""}>Concluído</option>
+                                    </select>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center mb-2 cursor-pointer header-rota">
+                            <span class="expand-icon text-lg mr-2">▶️</span>
+                            <div class="flex-1 flex items-center space-x-2">
+                                <input value="${rota.funcionario}" class="font-bold p-1 border rounded" data-id="${id}" id="funcionario-edit-${id}">
+                                <span class="font-bold"> – ${rota.data}</span>
+                            </div>
+                            <button data-id="${id}" class="excluir bg-red-500 text-white px-3 py-1 rounded">🗑️ Excluir</button>
+                        </div>
+                        <div class="space-y-1 etapas-content hidden">${etapasHTML}</div>
+                    `;
+
+                    rotasList.appendChild(div);
+                });
+
+                // Adiciona o evento de clique para expandir/minimizar
+                document.querySelectorAll(".header-rota").forEach(header => {
+                    header.addEventListener("click", (e) => {
+                        // Evita que o clique nos inputs ou botão de excluir acione a minimização
+                        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') {
+                            return;
+                        }
+
+                        const etapasContent = header.nextElementSibling;
+                        const expandIcon = header.querySelector(".expand-icon");
+                        etapasContent.classList.toggle("hidden");
+                        expandIcon.textContent = etapasContent.classList.contains("hidden") ? '➨' : '▼';
+                    });
+                });
+
+                // Atualizar etapas no banco ao editar
+                document.querySelectorAll(".etapa-local-edit, .etapa-desc-edit, .etapa-status-edit").forEach(input => {
+                    input.addEventListener("change", async (e) => {
+                        const id = e.target.dataset.id;
+                        const idx = e.target.dataset.idx;
+                        const rotaRef = ref(db, "rotas/" + id);
+
+                        const rotaSnap = await get(rotaRef);
+                        if (rotaSnap.exists()) {
+                            const rota = rotaSnap.val();
+                            if (e.target.classList.contains("etapa-local-edit")) {
+                                rota.etapas[idx].local = e.target.value;
+                            }
+                            if (e.target.classList.contains("etapa-desc-edit")) {
+                                rota.etapas[idx].descricao = e.target.value;
+                            }
+                            if (e.target.classList.contains("etapa-status-edit")) {
+                                rota.etapas[idx].status = e.target.value;
+                            }
+                            update(rotaRef, rota);
+                            // carregarRotas('all'); // Não recarrega para manter o estado
+                        }
+                    });
+                });
+                
+                // Atualizar funcionário no banco ao editar
+                document.querySelectorAll("input[id^='funcionario-edit-']").forEach(input => {
+                    input.addEventListener("change", async (e) => {
+                        const id = e.target.dataset.id;
+                        const novoFuncionario = e.target.value;
+
+                        const rotaRef = ref(db, "rotas/" + id);
+                        const rotaSnap = await get(rotaRef);
+                        if (rotaSnap.exists()) {
+                            const rota = rotaSnap.val();
+                            rota.funcionario = novoFuncionario;
+                            update(rotaRef, rota);
+                        }
+                    });
+                });
+
+                // Excluir rota
+                document.querySelectorAll(".excluir").forEach(btn => {
+                    btn.addEventListener("click", async () => {
+                        if (confirm("Tem certeza que deseja excluir esta rota?")) {
+                            await remove(ref(db, "rotas/" + btn.dataset.id));
+                            carregarRotas('all');
+                        }
+                    });
+                });
+            }
+        }
+
+        // Adicionar ouvintes de evento para os botões de filtro
+        filterAllBtn.addEventListener("click", () => carregarRotas('all'));
+        filterTodayBtn.addEventListener("click", () => carregarRotas('today'));
+        filterWeekBtn.addEventListener("click", () => carregarRotas('week'));
+
+        // Carregar as rotas no carregamento inicial da página
+        carregarRotas('all');
+    </script>
+
+</body>
+</html>
+```

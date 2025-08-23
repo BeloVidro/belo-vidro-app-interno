@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Painel do Chefe — Tarefas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+        }
+        .notification-bell-container {
+            position: relative;
+        }
+        .notification-dot {
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            height: 10px;
+            width: 10px;
+            background-color: red;
+            border-radius: 50%;
+            display: none; /* Inicia oculto */
+        }
+        .editable {
+            cursor: pointer;
+            border-bottom: 1px dashed #9ca3af;
+        }
+        .editable:hover {
+            border-bottom: 1px dashed #1f2937;
+        }
+    </style>
+    <script>
+        (function protect(requiredRoles=["admin"]) {
+            try {
+                const s = JSON.parse(localStorage.getItem("bv.session")||"null");
+                if (!s || !requiredRoles.includes(s.role)) location.replace("/longs/logns.html");
+            } catch(e){ location.replace("/longs/logns.html"); }
+        })(["admin"]);
+    </script>
+</head>
+<body class="bg-gray-100 flex h-screen">
+
+    <script>
+        function logout() {
+            localStorage.removeItem("bv.session");
+            window.location.replace("/longs/logns.html");
+        }
+    </script>
+
+    <aside class="w-64 bg-white shadow-md p-4 flex flex-col">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold">Painel de Tarefas</h2>
+            <div class="notification-bell-container">
+                <button onclick="toggleModal('notificationModal')" class="relative text-gray-800 hover:text-orange-600 focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405C18.21 14.73 18 13.918 18 13V6a6 6 0 00-12 0v7c0 .918-.21 1.73-.595 2.595L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9" />
+                    </svg>
+                    <span id="notificationDot" class="notification-dot"></span>
+                </button>
+            </div>
+        </div>
+        <nav class="space-y-3">
+           <a href="/adm/relatorio-gastos.html">
+            <button class="w-full flex items-center p-3 bg-green-100 rounded-lg">📋 Relatorio de Gastos</button></a>
+            <a href="/adm/desempelho.html"><button class="w-full flex items-center p-3 bg-orange-100 rounded-lg">⭐ Desempelho</button>
+            </a>
+            <a href="/adm/TAREFAS.html"><button class="w-full flex items-center p-3 bg-red-100 rounded-lg">📅 Tarefas</button></a>
+            <a href="/adm/ROTAS.html"><button class="w-full flex items-center p-3 bg-blue-100 rounded-lg">🗺️ Rotas</button></a>
+            <a href="/adm/painel%20adm.html"><button id="btnExtraHours" class="w-full flex items-center p-3 bg-purple-100 rounded-lg">⏱ Extra Hours</button></a>
+            <div class="mt-auto">
+                <button onclick="logout()" class=" w-full flex items-center justify-center bg-green-800 hover:bg-slate-300 text-slate-800 py-2 px-4 rounded-lg transition font-medium">
+                    Sair
+                </button>
+            </div> 
+      </nav>
+     
+    </aside>
+
+    <main class="flex-1 p-8 overflow-y-auto">
+        <h2 class="text-2xl font-bold text-green-700 mb-6">📌 Atribuir Nova Tarefa</h2>
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-8">
+            <form id="formTarefa" class="space-y-4">
+                <div>
+                    <label for="funcionario" class="block font-semibold mb-1">Funcionário:</label>
+                    <input type="text" id="funcionario" class="w-full border rounded-lg p-2" required>
+                </div>
+
+                <div>
+                    <label for="descricao" class="block font-semibold mb-1">Descrição da Tarefa:</label>
+                    <textarea id="descricao" class="w-full border rounded-lg p-2" required></textarea>
+                </div>
+
+                <div>
+                    <label for="prazo" class="block font-semibold mb-1">Prazo:</label>
+                    <input type="date" id="prazo" class="w-full border rounded-lg p-2" required>
+                </div>
+
+                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                    ➕ Registrar Tarefa
+                </button>
+            </form>
+        </div>
+
+        <h2 class="text-2xl font-bold text-green-700 mb-4">📋 Tarefas Registradas</h2>
+        
+        <div class="flex flex-col sm:flex-row gap-4 mb-4">
+            <input type="text" id="filtroFuncionario" placeholder="Filtrar por funcionário..." class="p-2 border rounded-lg flex-1">
+            <input type="month" id="filtroMes" class="p-2 border rounded-lg">
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full bg-white shadow-md rounded-lg overflow-hidden">
+                <thead class="bg-green-600 text-white">
+                    <tr>
+                        <th class="px-4 py-2 text-left">Funcionário</th>
+                        <th class="px-4 py-2 text-left">Descrição</th>
+                        <th class="px-4 py-2 text-left">Prazo</th>
+                        <th class="px-4 py-2 text-left">Status</th>
+                        <th class="px-4 py-2 text-left">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="listaTarefas" class="divide-y">
+                    <tr><td colspan="5" class="text-center py-4">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <div id="notificationModal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h3 class="text-2xl font-bold">Lembretes e Notificações</h3>
+                <button onclick="toggleModal('notificationModal')" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+            </div>
+
+            <div class="space-y-6">
+                <div>
+                    <h4 class="text-xl font-semibold text-gray-700">✍️ Enviar Lembrete</h4>
+                    <div class="bg-gray-100 p-4 rounded-lg mt-2">
+                        <div class="mb-4">
+                            <label for="recipientSelect" class="block text-sm font-medium text-gray-700">Destinatário</label>
+                            <select id="recipientSelect" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="reminderDescription" class="block text-sm font-medium text-gray-700">Mensagem</label>
+                            <textarea id="reminderDescription" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea>
+                        </div>
+                        <button onclick="sendReminder()" class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition">Enviar</button>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-xl font-semibold text-gray-700">📩 Lembretes Recebidos</h4>
+                    <div id="receivedRemindersContainer" class="space-y-4 mt-2">
+                        <div class="text-gray-500">Nenhum lembrete recebido.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="editStatusModal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h3 class="text-xl font-bold">Editar Status da Tarefa</h3>
+                <button onclick="toggleModal('editStatusModal')" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+            </div>
+            <p><strong>Tarefa:</strong> <span id="taskDescription"></span></p>
+            <div class="mt-4">
+                <label for="statusSelect" class="block font-semibold mb-1">Novo Status:</label>
+                <select id="statusSelect" class="w-full border rounded-lg p-2">
+                    <option value="Pendente">Pendente</option>
+                    <option value="Em Andamento">Em Andamento</option>
+                    <option value="Concluído">Concluído</option>
+                </select>
+            </div>
+            <div class="mt-6 text-right">
+                <button onclick="saveStatus()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQGXH3b2bMR7ZdKPZm-vPONKijkRw-Xgg",
+            authDomain: "belo-vidro-banco-de-dados.firebaseapp.com",
+            projectId: "belo-vidro-banco-de-dados",
+            storageBucket: "belo-vidro-banco-de-dados.firebasestorage.app",
+            messagingSenderId: "705873952615",
+            appId: "1:705873952615:web:83613fd5d2839aad66b9c2",
+            databaseURL: "https://belo-vidro-banco-de-dados-default-rtdb.firebaseio.com"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const sessao = JSON.parse(localStorage.getItem("bv.session") || "null");
+        const listaRef = ref(db, "tarefas");
+
+        // Referências HTML para o novo sistema de lembretes
+        const notificationModal = document.getElementById('notificationModal');
+        const receivedRemindersContainer = document.getElementById('receivedRemindersContainer');
+        const recipientSelect = document.getElementById('recipientSelect');
+        const reminderDescription = document.getElementById('reminderDescription');
+        const notificationDot = document.getElementById('notificationDot');
+        
+        // Referências para a edição
+        const editStatusModal = document.getElementById('editStatusModal');
+        const taskDescription = document.getElementById('taskDescription');
+        const statusSelect = document.getElementById('statusSelect');
+        const filtroFuncionario = document.getElementById("filtroFuncionario");
+        const filtroMes = document.getElementById("filtroMes");
+        
+        let currentTaskId = null; 
+        let tarefasCache = [];
+
+        // Funções do Modal de Notificações
+        window.toggleModal = (modalId) => {
+            const modal = document.getElementById(modalId);
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+            if (modal.style.display === 'flex' && modalId === 'notificationModal') {
+                checkAndRenderReminders();
+            }
+        };
+
+        window.sendReminder = () => {
+            const recipient = recipientSelect.value;
+            const message = reminderDescription.value;
+            if (!recipient || !message) {
+                alert("Por favor, selecione um destinatário e escreva uma mensagem.");
+                return;
+            }
+            const newReminderRef = push(ref(db, 'lembrete'));
+            set(newReminderRef, {
+                remetente: sessao?.name || "Chefe",
+                destinatario: recipient,
+                mensagem: message,
+                lido: "não",
+                timestamp: Date.now()
+            }).then(() => {
+                alert("Lembrete enviado!");
+                reminderDescription.value = "";
+                toggleModal('notificationModal');
+            }).catch(error => {
+                console.error("Erro ao enviar lembrete:", error);
+                alert("Erro ao enviar lembrete. Tente novamente.");
+            });
+        };
+
+        window.markAsRead = (reminderId) => {
+            update(ref(db, `lembrete/${reminderId}`), {lido: "sim"})
+                .then(() => console.log("Lembrete marcado como lido"))
+                .catch(error => console.error("Erro ao marcar como lido:", error));
+        };
+
+        function checkAndRenderReminders() {
+            onValue(ref(db, 'lembrete'), (snapshot) => {
+                const notifications = snapshot.val() || {};
+                const remindersForMe = Object.entries(notifications).filter(([id, notif]) => {
+                    const validRecipients = ['chefe', 'wagner'];
+                    return notif.destinatario &&
+                            validRecipients.includes(notif.destinatario.toLowerCase()) &&
+                            notif.lido === "não";
+                });
+
+                receivedRemindersContainer.innerHTML = '';
+                if (remindersForMe.length === 0) {
+                    receivedRemindersContainer.innerHTML = '<div class="text-gray-500">Nenhum lembrete recebido.</div>';
+                    notificationDot.style.display = 'none';
+                } else {
+                    remindersForMe.forEach(([id, notif]) => {
+                        const reminderCard = document.createElement('div');
+                        reminderCard.className = `p-4 rounded-lg border bg-white text-gray-800 border-orange-500`;
+                        reminderCard.innerHTML = `
+                            <p><strong>De:</strong> ${notif.remetente}</p>
+                            <p>${notif.mensagem}</p>
+                            <p class="text-xs mt-2 text-gray-400">${new Date(notif.timestamp).toLocaleString()}</p>
+                            <button onclick="markAsRead('${id}')" class="mt-2 text-blue-500 hover:text-blue-700">Marcar como lido</button>
+                        `;
+                        receivedRemindersContainer.prepend(reminderCard);
+                    });
+                    notificationDot.style.display = 'block';
+                }
+            });
+        }
+
+        function popularDestinatarios() {
+            const destinatarios = ["Chefe", "Kaio", "Edclenio", "Fabiano", "Hercules", "Iago", "Jeferson", "Junior"];
+
+            recipientSelect.innerHTML = '';
+            destinatarios.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                recipientSelect.appendChild(option);
+            });
+        }
+
+        // --- Funções de Edição e Filtro de Tarefas ---
+
+        function formatarData(dataISO) {
+            if (!dataISO) return "-";
+            const [ano, mes, dia] = dataISO.split('-');
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        // Nova função para salvar filtros no localStorage
+        function salvarFiltros() {
+            localStorage.setItem("filtroFuncionario", filtroFuncionario.value);
+            localStorage.setItem("filtroMes", filtroMes.value);
+        }
+
+        // Nova função para carregar filtros do localStorage
+        function carregarFiltros() {
+            const savedFuncionario = localStorage.getItem("filtroFuncionario");
+            const savedMes = localStorage.getItem("filtroMes");
+            if (savedFuncionario) {
+                filtroFuncionario.value = savedFuncionario;
+            }
+            if (savedMes) {
+                filtroMes.value = savedMes;
+            }
+        }
+        
+        function filtrarTabelaTarefas() {
+            // Salva os filtros antes de aplicar
+            salvarFiltros();
+
+            const nomeFiltroFuncionario = filtroFuncionario.value.toLowerCase();
+            const valorFiltroMes = filtroMes.value;
+            
+            const lista = document.getElementById("listaTarefas");
+            lista.innerHTML = "";
+            
+            const tarefasFiltradas = tarefasCache.filter(tarefa => {
+                const nomeFuncionario = tarefa.funcionario.toLowerCase();
+                
+                let matchFuncionario = nomeFuncionario.includes(nomeFiltroFuncionario);
+                
+                let matchMes = true;
+                if (valorFiltroMes) {
+                    const [anoFiltro, mesFiltro] = valorFiltroMes.split('-');
+                    const prazoDate = new Date(tarefa.prazo + 'T00:00:00');
+                    const anoTarefa = prazoDate.getFullYear().toString();
+                    const mesTarefa = String(prazoDate.getMonth() + 1).padStart(2, '0');
+                    matchMes = (anoTarefa === anoFiltro && mesTarefa === mesFiltro);
+                }
+
+                return matchFuncionario && matchMes;
+            });
+
+            if (tarefasFiltradas.length > 0) {
+                tarefasFiltradas.forEach(tarefa => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td class="px-4 py-2 editable" data-id="${tarefa.id}" data-field="funcionario">${tarefa.funcionario}</td>
+                        <td class="px-4 py-2 editable" data-id="${tarefa.id}" data-field="descricao">${tarefa.descricao}</td>
+                        <td class="px-4 py-2">${formatarData(tarefa.prazo)}</td>
+                        <td class="px-4 py-2 editable-status" data-id="${tarefa.id}">${tarefa.status}</td>
+                        <td class="px-4 py-2">
+                            <button onclick="deleteTask('${tarefa.id}')" class="text-red-600 hover:text-red-800">Excluir</button>
+                        </td>
+                    `;
+                    lista.appendChild(tr);
+                });
+            } else {
+                lista.innerHTML = `<tr><td colspan="5" class="text-center py-4">Nenhuma tarefa encontrada.</td></tr>`;
+            }
+            
+            ligarEventosEdicao();
+        }
+
+        function ligarEventosEdicao() {
+            document.querySelectorAll('.editable').forEach(cell => {
+                cell.onclick = (event) => {
+                    event.stopPropagation();
+                    makeEditable(cell);
+                };
+            });
+
+            document.querySelectorAll('.editable-status').forEach(cell => {
+                cell.onclick = () => {
+                    currentTaskId = cell.getAttribute('data-id');
+                    const tarefa = tarefasCache.find(t => t.id === currentTaskId);
+                    if (tarefa) {
+                        taskDescription.textContent = tarefa.descricao;
+                        statusSelect.value = tarefa.status;
+                        toggleModal('editStatusModal');
+                    }
+                };
+            });
+        }
+        
+        function makeEditable(cell) {
+            const oldValue = cell.textContent;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = oldValue;
+            input.className = 'w-full p-1 border rounded';
+            
+            cell.textContent = '';
+            cell.appendChild(input);
+            input.focus();
+            
+            const saveEdit = () => {
+                const newValue = input.value.trim();
+                if (newValue !== "" && newValue !== oldValue) {
+                    const taskId = cell.getAttribute('data-id');
+                    const field = cell.getAttribute('data-field');
+                    
+                    const updates = {};
+                    updates[field] = newValue;
+
+                    update(ref(db, `tarefas/${taskId}`), updates)
+                        .then(() => {
+                            cell.textContent = newValue;
+                        })
+                        .catch(error => {
+                            console.error("Erro ao atualizar campo:", error);
+                            cell.textContent = oldValue;
+                            alert("Erro ao salvar. Tente novamente.");
+                        });
+                } else {
+                    cell.textContent = oldValue;
+                }
+            };
+            
+            input.onblur = saveEdit;
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    input.blur();
+                }
+            };
+        }
+        
+        window.saveStatus = () => {
+            const newStatus = statusSelect.value;
+            if (currentTaskId) {
+                update(ref(db, `tarefas/${currentTaskId}`), { status: newStatus })
+                    .then(() => {
+                        toggleModal('editStatusModal');
+                    })
+                    .catch(error => {
+                        console.error("Erro ao atualizar status:", error);
+                        alert("Erro ao salvar status. Tente novamente.");
+                    });
+            }
+        };
+
+        window.deleteTask = (taskId) => {
+            if (confirm("Tem certeza que deseja excluir esta tarefa?")) {
+                set(ref(db, `tarefas/${taskId}`), null)
+                    .then(() => {
+                        console.log("Tarefa excluída com sucesso.");
+                    })
+                    .catch(error => {
+                        console.error("Erro ao excluir tarefa:", error);
+                        alert("Erro ao excluir tarefa. Tente novamente.");
+                    });
+            }
+        };
+
+        // Registrar tarefa
+        document.getElementById("formTarefa").addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const funcionario = document.getElementById("funcionario").value;
+            const descricao = document.getElementById("descricao").value;
+            const prazo = document.getElementById("prazo").value;
+            
+            const newTaskId = push(listaRef).key;
+
+            set(ref(db, "tarefas/" + newTaskId), {
+                funcionario,
+                descricao,
+                prazo,
+                status: "Pendente"
+            }).then(() => {
+                e.target.reset();
+            }).catch(error => {
+                console.error("Erro ao registrar tarefa:", error);
+                alert("Erro ao registrar tarefa. Tente novamente.");
+            });
+        });
+
+        // Adicionar os listeners de input e change
+        filtroFuncionario.addEventListener("input", filtrarTabelaTarefas);
+        filtroMes.addEventListener("change", filtrarTabelaTarefas);
+
+        // Listar tarefas (com cache local)
+        onValue(listaRef, (snapshot) => {
+            const dados = snapshot.val();
+            tarefasCache = [];
+            if (dados) {
+                Object.entries(dados).forEach(([id, tarefa]) => {
+                    tarefasCache.push({ id, ...tarefa });
+                });
+            }
+            // Chama a função de filtro para renderizar a tabela
+            filtrarTabelaTarefas();
+        });
+
+        // Carrega os filtros salvos ao iniciar a página
+        carregarFiltros();
+        popularDestinatarios();
+        checkAndRenderReminders();
+    </script>
+</body>
+</html>

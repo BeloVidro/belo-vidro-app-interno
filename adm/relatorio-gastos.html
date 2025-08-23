@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Painel do Chefe — Gastos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+        }
+        .modal-fullscreen {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            border-radius: 0;
+            padding: 2rem;
+        }
+        .notification-bell-container {
+            position: relative;
+        }
+        .notification-dot {
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            height: 10px;
+            width: 10px;
+            background-color: red;
+            border-radius: 50%;
+            display: none;
+        }
+        .funcionario-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .funcionario-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .funcionario-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4b5563;
+        }
+        /* Esconder campos extras por padrão */
+        #funcionarioContainer, #tipoGastoContainer {
+            display: none;
+        }
+    </style>
+    <script>
+        (function protect(requiredRoles=["admin"]) {
+            try {
+                const s = JSON.parse(localStorage.getItem("bv.session")||"null");
+                if (!s || !requiredRoles.includes(s.role)) location.replace("/longs/logns.html");
+            } catch(e){ location.replace("/longs/logns.html"); }
+        })(["admin"]);
+    </script>
+</head>
+<body class="bg-gray-100 flex h-screen">
+
+    <script>
+        function logout() {
+            localStorage.removeItem("bv.session");
+            window.location.replace("/longs/logns.html");
+        }
+    </script>
+
+    <aside class="w-64 bg-white shadow-md p-4 flex flex-col">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold">Painel de Tarefas</h2>
+            <div class="notification-bell-container">
+                <button onclick="toggleModal('notificationModal')" class="relative text-gray-800 hover:text-orange-600 focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405C18.21 14.73 18 13.918 18 13V6a6 6 0 00-12 0v7c0 .918-.21 1.73-.595 2.595L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9" />
+                    </svg>
+                    <span id="notificationDot" class="notification-dot"></span>
+                </button>
+            </div>
+        </div>
+        <nav class="space-y-3">
+            <a href="/adm/relatorio-gastos.html">
+            <button class="w-full flex items-center p-3 bg-green-100 rounded-lg">📋 Relatorio de Gastos</button></a>
+            <a href="/adm/desempelho.html"><button class="w-full flex items-center p-3 bg-orange-100 rounded-lg">⭐ Desempelho</button>
+            </a>
+            <a href="/adm/TAREFAS.html"><button class="w-full flex items-center p-3 bg-red-100 rounded-lg">📅 Tarefas</button></a>
+            <a href="/adm/ROTAS.html"><button class="w-full flex items-center p-3 bg-blue-100 rounded-lg">🗺️ Rotas</button></a>
+            <a href="/adm/painel%20adm.html"><button id="btnExtraHours" class="w-full flex items-center p-3 bg-purple-100 rounded-lg">⏱ Extra Hours</button></a>
+            <div class="mt-auto">
+                <button onclick="logout()" class=" w-full flex items-center justify-center bg-green-800 hover:bg-slate-300 text-slate-800 py-2 px-4 rounded-lg transition font-medium">
+                    Sair
+                </button>
+            </div>
+    </aside>
+
+    <main class="flex-1 p-8 overflow-y-auto">
+        <h2 class="text-2xl font-bold text-green-700 mb-6">📊 Relatório de Gastos por Funcionário</h2>
+
+        <div class="flex justify-end mb-4">
+            <button onclick="openRegisterModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                ➕ Registrar Gasto
+            </button>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-4 mb-4">
+            <input type="month" id="filtroMesRelatorio" class="p-2 border rounded-lg">
+        </div>
+
+        <div id="funcionariosContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        </div>
+    </main>
+
+    <div id="registerGastoModal" class="modal">
+        <div class="modal-content modal-fullscreen">
+            <div class="flex justify-between items-center border-b pb-4 mb-6">
+                <h3 class="text-2xl font-bold">💰 Registrar Gasto</h3>
+                <button onclick="closeModal('registerGastoModal')" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+            </div>
+            
+            <form id="formGasto" class="space-y-4 max-w-lg mx-auto">
+                <div>
+                    <label for="descricaoGasto" class="block font-semibold mb-1">Descrição do Gasto:</label>
+                    <input type="text" id="descricaoGasto" class="w-full border rounded-lg p-2" required>
+                </div>
+                <div>
+                    <label for="valorGasto" class="block font-semibold mb-1">Valor:</label>
+                    <input type="number" id="valorGasto" class="w-full border rounded-lg p-2" step="0.01" required>
+                </div>
+                <div>
+                    <label for="dataGasto" class="block font-semibold mb-1">Data:</label>
+                    <input type="date" id="dataGasto" class="w-full border rounded-lg p-2" required>
+                </div>
+                <div>
+                    <label for="categoriaGasto" class="block font-semibold mb-1">Categoria:</label>
+                    <select id="categoriaGasto" class="w-full border rounded-lg p-2" required>
+                        <option value="">Selecione a Categoria</option>
+                        <option value="Combustivel">Combustível</option>
+                        <option value="Manutencao">Manutenção</option>
+                        <option value="Material">Material</option>
+                        <option value="Alimentacao">Alimentação</option>
+                        <option value="Funcionario">Funcionário</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+                <div id="funcionarioContainer">
+                    <label for="funcionarioGasto" class="block font-semibold mb-1">Funcionário:</label>
+                    <select id="funcionarioGasto" class="w-full border rounded-lg p-2"></select>
+                </div>
+                <div id="tipoGastoContainer">
+                    <label for="tipoGastoFuncionario" class="block font-semibold mb-1">Tipo de Gasto:</label>
+                    <select id="tipoGastoFuncionario" class="w-full border rounded-lg p-2">
+                        <option value="valorAdicional">Valor Adicional</option>
+                        <option value="gastoReparo">Gasto de Reparo</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                    ➕ Registrar Gasto
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="funcionarioReportModal" class="modal">
+        <div class="modal-content modal-fullscreen">
+            <div class="flex justify-between items-center border-b pb-4 mb-6">
+                <h3 class="text-2xl font-bold">Relatório Mensal de <span id="funcionarioNome"></span></h3>
+                <button onclick="closeModal('funcionarioReportModal')" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h4 class="text-xl font-semibold mb-2">Resumo Financeiro</h4>
+                    <ul class="space-y-2 bg-gray-100 p-4 rounded-lg">
+                        <li><strong>Salário:</strong> <span id="salarioFuncionario"></span></li>
+                        <li><strong>Horas Extras Aprovadas:</strong> <span id="horasExtrasAprovadas"></span></li>
+                        <li><strong>Valor Adicional Pago:</strong> <span id="valorAdicionalPago"></span></li>
+                        <li><strong>Gastos com Reparo:</strong> <span id="gastosReparo"></span></li>
+                        <li class="pt-4 border-t border-gray-300"><strong>Custo Total do Mês:</strong> <span id="custoTotalMes"></span></li>
+                        <li class="font-bold text-lg"><strong>Valor Pago ao Funcionário:</strong> <span id="valorPagoFuncionario"></span></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-xl font-semibold mb-2">Detalhamento dos Gastos</h4>
+                    <div class="overflow-y-auto max-h-96">
+                        <table class="w-full bg-white shadow-md rounded-lg overflow-hidden">
+                            <thead class="bg-gray-200">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-sm font-semibold">Data</th>
+                                    <th class="px-4 py-2 text-left text-sm font-semibold">Descrição</th>
+                                    <th class="px-4 py-2 text-left text-sm font-semibold">Valor</th>
+                                    <th class="px-4 py-2 text-left text-sm font-semibold">Tipo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detalhamentoGastos" class="divide-y">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notificationModal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h3 class="text-2xl font-bold">Lembretes e Notificações</h3>
+                <button onclick="closeModal('notificationModal')" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+            </div>
+            <div class="space-y-6">
+                <div>
+                    <h4 class="text-xl font-semibold text-gray-700">✍️ Enviar Lembrete</h4>
+                    <div class="bg-gray-100 p-4 rounded-lg mt-2">
+                        <div class="mb-4">
+                            <label for="recipientSelect" class="block text-sm font-medium text-gray-700">Destinatário</label>
+                            <select id="recipientSelect" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="reminderDescription" class="block text-sm font-medium text-gray-700">Mensagem</label>
+                            <textarea id="reminderDescription" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea>
+                        </div>
+                        <button onclick="sendReminder()" class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition">Enviar</button>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-xl font-semibold text-gray-700">📩 Lembretes Recebidos</h4>
+                    <div id="receivedRemindersContainer" class="space-y-4 mt-2">
+                        <div class="text-gray-500">Nenhum lembrete recebido.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+        import { getDatabase, ref, onValue, push, set, update, get, child } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQGXH3b2bMR7ZdKPZm-vPONKijkRw-Xgg",
+            authDomain: "belo-vidro-banco-de-dados.firebaseapp.com",
+            projectId: "belo-vidro-banco-de-dados",
+            storageBucket: "belo-vidro-banco-de-dados.firebasestorage.app",
+            messagingSenderId: "705873952615",
+            appId: "1:705873952615:web:83613fd5d2839aad66b9c2",
+            databaseURL: "https://belo-vidro-banco-de-dados-default-rtdb.firebaseio.com"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        
+        const funcionariosRef = ref(db, "funcionarios");
+        const gastosRef = ref(db, "gastos");
+        const horasExtrasRef = ref(db, "horas-extras");
+        const lembreteRef = ref(db, "lembrete");
+        
+        const funcionariosContainer = document.getElementById("funcionariosContainer");
+        const filtroMesRelatorio = document.getElementById("filtroMesRelatorio");
+        const categoriaGastoSelect = document.getElementById("categoriaGasto");
+        const funcionarioGastoSelect = document.getElementById("funcionarioGasto");
+        const funcionarioContainerDiv = document.getElementById("funcionarioContainer");
+        const tipoGastoContainerDiv = document.getElementById("tipoGastoContainer");
+        const tipoGastoFuncionarioSelect = document.getElementById("tipoGastoFuncionario");
+
+        let allData = {
+            funcionarios: [],
+            gastos: [],
+            horasExtras: []
+        };
+        
+        async function loadAllData() {
+            try {
+                const [funcionariosSnap, gastosSnap, horasExtrasSnap] = await Promise.all([
+                    get(funcionariosRef),
+                    get(gastosRef),
+                    get(horasExtrasRef)
+                ]);
+
+                allData.funcionarios = Object.entries(funcionariosSnap.val() || {}).map(([id, info]) => ({ id, ...info }));
+                allData.gastos = Object.entries(gastosSnap.val() || {}).map(([id, gasto]) => ({ id, ...gasto }));
+                allData.horasExtras = Object.entries(horasExtrasSnap.val() || {}).map(([id, hora]) => ({ id, ...hora }));
+
+                renderizarCardsFuncionarios();
+                popularFuncionariosNosSelects();
+                checkAndRenderReminders();
+                
+            } catch (error) {
+                console.error("Erro ao carregar dados do Firebase:", error);
+            }
+        }
+        
+        window.openRegisterModal = () => {
+            document.getElementById('registerGastoModal').style.display = 'flex';
+        };
+
+        window.closeModal = (id) => {
+            document.getElementById(id).style.display = 'none';
+        };
+        
+        window.toggleModal = (id) => {
+            const modal = document.getElementById(id);
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        };
+
+        function formatarValor(valor) {
+            return `R$ ${parseFloat(valor).toFixed(2).replace('.', ',')}`;
+        }
+
+        function getInitials(name) {
+            const names = name.split(' ');
+            return names.map(n => n[0]).join('').toUpperCase();
+        }
+
+        function popularFuncionariosNosSelects() {
+            const names = allData.funcionarios.map(f => f.id);
+            funcionarioGastoSelect.innerHTML = '<option value="">Selecione o Funcionário</option>';
+            names.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                funcionarioGastoSelect.appendChild(option);
+            });
+        }
+        
+        let remetente = JSON.parse(localStorage.getItem("bv.session")).id;
+        let destinatorio = "";
+
+        async function checkAndRenderReminders() {
+            const reminders = await get(lembreteRef).then(snap => snap.val());
+            const receivedRemindersContainer = document.getElementById("receivedRemindersContainer");
+            const notificationDot = document.getElementById("notificationDot");
+            receivedRemindersContainer.innerHTML = '';
+
+            const myReminders = Object.entries(reminders || {}).filter(([id, r]) => r.destinatario && r.destinatario.toLowerCase() === remetente.toLowerCase());
+
+            if (myReminders.length > 0) {
+                myReminders.forEach(([id, r]) => {
+                    const reminderCard = document.createElement("div");
+                    reminderCard.className = "p-3 bg-white shadow-md rounded-md";
+                    reminderCard.innerHTML = `
+                        <p class="text-sm text-gray-500">De: ${r.remetente || 'Desconhecido'}</p>
+                        <p class="mt-1">${r.mensagem || 'Sem mensagem'}</p>
+                    `;
+                    receivedRemindersContainer.appendChild(reminderCard);
+                });
+                notificationDot.style.display = 'block';
+            } else {
+                receivedRemindersContainer.innerHTML = '<div class="text-gray-500">Nenhum lembrete recebido.</div>';
+                notificationDot.style.display = 'none';
+            }
+            
+            const recipients = ["Chefe"].concat(allData.funcionarios.map(f => f.id)).filter(name => name.toLowerCase() !== remetente.toLowerCase());
+            const recipientSelect = document.getElementById("recipientSelect");
+            recipientSelect.innerHTML = recipients.map(r => `<option value="${r}">${r}</option>`).join('');
+        }
+        
+        window.sendReminder = async () => {
+            const recipient = document.getElementById("recipientSelect").value;
+            const message = document.getElementById("reminderDescription").value;
+            if (!recipient || !message) {
+                alert("Por favor, preencha todos os campos.");
+                return;
+            }
+            const newReminder = {
+                destinatario: recipient,
+                mensagem: message,
+                remetente: remetente,
+                lido: "não",
+                timestamp: Date.now()
+            };
+            await push(lembreteRef, newReminder);
+            alert("Lembrete enviado com sucesso!");
+            document.getElementById("reminderDescription").value = "";
+            checkAndRenderReminders();
+        };
+        
+        function renderizarCardsFuncionarios() {
+            const mesFiltro = filtroMesRelatorio.value;
+            funcionariosContainer.innerHTML = '';
+            
+            allData.funcionarios.forEach(funcionario => {
+                const horasExtrasDoMes = allData.horasExtras.filter(he => 
+                    he.funcionario && he.funcionario.toLowerCase() === funcionario.id.toLowerCase() && 
+                    he.status && he.status.toLowerCase() === 'aprovado' && 
+                    (!mesFiltro || he.data.startsWith(mesFiltro))
+                );
+                
+                const gastosFuncionario = (funcionario.gastosRegistrados) ? Object.values(funcionario.gastosRegistrados) : [];
+                const gastosDoMes = gastosFuncionario.filter(g => !mesFiltro || g.data.startsWith(mesFiltro));
+                
+                const gastosReparoFuncionario = gastosDoMes.filter(g => g.tipo === 'gastoReparo').reduce((sum, g) => sum + (parseFloat(g.valor) || 0), 0);
+                const valorAddFuncionario = gastosDoMes.filter(g => g.tipo === 'valorAdicional').reduce((sum, g) => sum + (parseFloat(g.valor) || 0), 0);
+                
+                const totalHorasExtras = horasExtrasDoMes.reduce((sum, he) => sum + (parseFloat(he.horas) || 0), 0);
+                const valorHorasExtras = horasExtrasDoMes.reduce((sum, he) => sum + (parseFloat(he.valorpago) || 0), 0);
+
+                const valorPago = (funcionario.salario || 0) + valorHorasExtras + valorAddFuncionario;
+                const custoTotal = valorPago + gastosReparoFuncionario;
+
+                const card = document.createElement('div');
+                card.className = 'funcionario-card';
+                card.innerHTML = `
+                    <div class="funcionario-avatar">${getInitials(funcionario.id)}</div>
+                    <h4 class="mt-4 text-lg font-semibold">${funcionario.id}</h4>
+                    <p class="text-sm text-gray-600 mt-2">
+                        <span>Horas Extras: ${totalHorasExtras}h</span>
+                    </p>
+                    <p class="text-sm text-gray-600">
+                        <span>Gastos do Mês: ${formatarValor(gastosReparoFuncionario + valorAddFuncionario)}</span>
+                    </p>
+                    <p class="text-sm text-gray-600 font-bold mt-2">
+                        <span>Custo Total: ${formatarValor(custoTotal)}</span>
+                    </p>
+                `;
+                card.onclick = () => abrirRelatorioFuncionario(funcionario, totalHorasExtras, valorHorasExtras, gastosReparoFuncionario, valorAddFuncionario, valorPago, custoTotal);
+                funcionariosContainer.appendChild(card);
+            });
+        }
+        
+        window.abrirRelatorioFuncionario = (funcionario, totalHorasExtras, valorHorasExtras, gastosReparoFuncionario, valorAddFuncionario, valorPago, custoTotal) => {
+            const mesFiltro = filtroMesRelatorio.value;
+            document.getElementById("funcionarioNome").textContent = funcionario.id;
+            document.getElementById("salarioFuncionario").textContent = formatarValor(funcionario.salario || 0);
+            
+            document.getElementById("horasExtrasAprovadas").textContent = `${totalHorasExtras}h`;
+            
+            document.getElementById("valorAdicionalPago").textContent = formatarValor(valorHorasExtras + valorAddFuncionario);
+            
+            document.getElementById("gastosReparo").textContent = formatarValor(gastosReparoFuncionario);
+            
+            document.getElementById("custoTotalMes").textContent = formatarValor(custoTotal);
+            
+            document.getElementById("valorPagoFuncionario").textContent = formatarValor(valorPago);
+
+            const detalhamentoGastos = document.getElementById("detalhamentoGastos");
+            detalhamentoGastos.innerHTML = '';
+            
+            const gastosDoFuncionario = funcionario.gastosRegistrados ? Object.values(funcionario.gastosRegistrados) : [];
+            const gastosFiltrados = gastosDoFuncionario.filter(g => !mesFiltro || g.data.startsWith(mesFiltro));
+
+            const horasExtrasDoMes = allData.horasExtras.filter(he => 
+                he.funcionario && he.funcionario.toLowerCase() === funcionario.id.toLowerCase() && 
+                he.status && he.status.toLowerCase() === 'aprovado' && 
+                (!mesFiltro || he.data.startsWith(mesFiltro))
+            );
+            
+            const todosDetalhes = [
+                ...gastosFiltrados.map(gasto => ({
+                    data: gasto.data,
+                    descricao: gasto.descricao,
+                    valor: gasto.valor,
+                    tipo: gasto.tipo === 'valorAdicional' ? 'Valor Adicional' : 'Gasto de Reparo'
+                })),
+                ...horasExtrasDoMes.map(horaExtra => ({
+                    data: horaExtra.data,
+                    descricao: `Horas Extras (${horaExtra.horas}h)`,
+                    valor: (parseFloat(horaExtra.valorpago) || 0), // Garante que o valor exibido é um número
+                    tipo: 'Horas Extras'
+                }))
+            ];
+            
+            if (todosDetalhes.length > 0) {
+                todosDetalhes.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-4 py-2 text-sm">${item.data}</td>
+                        <td class="px-4 py-2 text-sm">${item.descricao}</td>
+                        <td class="px-4 py-2 text-sm">${formatarValor(item.valor)}</td>
+                        <td class="px-4 py-2 text-sm">${item.tipo}</td>
+                    `;
+                    detalhamentoGastos.appendChild(tr);
+                });
+            } else {
+                detalhamentoGastos.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-sm text-gray-500">Nenhum gasto ou hora extra registrada para este mês.</td></tr>`;
+            }
+
+            document.getElementById('funcionarioReportModal').style.display = 'flex';
+        };
+        
+        document.getElementById("formGasto").addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const descricao = document.getElementById("descricaoGasto").value;
+            const valor = document.getElementById("valorGasto").value;
+            const data = document.getElementById("dataGasto").value;
+            const categoria = categoriaGastoSelect.value;
+            let funcionario = "";
+            let tipoGasto = "";
+
+            if (categoria === "Funcionario") {
+                funcionario = funcionarioGastoSelect.value;
+                tipoGasto = tipoGastoFuncionarioSelect.value;
+                if (!funcionario || !tipoGasto) {
+                    alert("Por favor, selecione o funcionário e o tipo de gasto.");
+                    return;
+                }
+            }
+            
+            if (!descricao || !valor || !data || !categoria) {
+                alert("Por favor, preencha todos os campos.");
+                return;
+            }
+            
+            const newGasto = {
+                descricao,
+                valor: parseFloat(valor),
+                data,
+                categoria,
+                timestamp: Date.now(),
+                ...(funcionario && { funcionario, tipo: tipoGasto })
+            };
+
+            await set(push(gastosRef), newGasto);
+            if (categoria === "Funcionario") {
+                await set(push(child(funcionariosRef, `${funcionario}/gastosRegistrados`)), newGasto);
+            }
+
+            alert("Gasto registrado com sucesso!");
+            e.target.reset();
+            closeModal('registerGastoModal');
+            
+            loadAllData();
+        });
+
+        categoriaGastoSelect.addEventListener("change", () => {
+            if (categoriaGastoSelect.value === "Funcionario") {
+                funcionarioContainerDiv.style.display = 'block';
+                tipoGastoContainerDiv.style.display = 'block';
+                funcionarioGastoSelect.setAttribute('required', 'required');
+                tipoGastoFuncionarioSelect.setAttribute('required', 'required');
+            } else {
+                funcionarioContainerDiv.style.display = 'none';
+                tipoGastoContainerDiv.style.display = 'none';
+                funcionarioGastoSelect.removeAttribute('required');
+                tipoGastoFuncionarioSelect.removeAttribute('required');
+            }
+        });
+
+        filtroMesRelatorio.addEventListener("change", renderizarCardsFuncionarios);
+
+        loadAllData();
+    </script>
+</body>
+</html>
