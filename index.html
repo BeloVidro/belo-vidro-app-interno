@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Login • Belo Vidro</title>
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f5132">
+
   <style>
     :root {
       --verde-escuro: #0e5135;
@@ -201,6 +204,15 @@
       e.preventDefault();
       alert(localStorage.getItem(STORAGE_KEY) || "sem sessão");
     });
-  </script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('✅ Service Worker registrado:', reg))
+        .catch(err => console.error('❌ Erro ao registrar o SW:', err));
+    });
+  }
+</script>
+
 </body>
 </html>
+
