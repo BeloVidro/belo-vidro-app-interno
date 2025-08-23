@@ -1,17 +1,201 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="pt-BR">
 <head>
-    <title>Minha Página Inicial</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login • Belo Vidro</title>
+  <style>
+    :root {
+      --verde-escuro: #0e5135;
+      --verde-claro: #4caf50;
+      --marrom-claro: #c8ad7f;
+      --bg: #0b0f0d;
+      --card: #121712;
+      --text: #f3f5f4;
+      --muted: #9fb3a9;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 80% -10%, rgba(76,175,80,.2), transparent 50%),
+              radial-gradient(900px 700px at -10% 110%, rgba(200,173,127,.18), transparent 40%),
+              var(--bg);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+      padding: 24px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .logo-circle {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: conic-gradient(from 120deg, var(--verde-escuro), var(--verde-claro));
+      display: grid; place-items: center; color: white; font-weight: 800;
+      box-shadow: inset 0 0 10px rgba(0,0,0,.35);
+    }
+    h1 { font-size: 1.25rem; margin: 0; }
+    p { color: var(--muted); margin: 4px 0 0 0; font-size: .95rem; }
+
+    form { display: grid; gap: 14px; margin-top: 16px; }
+    label { font-size: .9rem; color: #cfe0d8; }
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: #0f140f;
+      color: var(--text);
+      outline: none;
+    }
+    input:focus { border-color: var(--verde-claro); box-shadow: 0 0 0 3px rgba(76,175,80,.18); }
+    .btn {
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 0;
+      background: linear-gradient(135deg, var(--verde-escuro), var(--verde-claro));
+      color: white; font-weight: 700; cursor: pointer; transition: transform .05s ease;
+    }
+    .btn:active { transform: translateY(1px); }
+    .row { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+    .error { display:none; background: #351010; color: #ffd4d4; border: 1px solid #5c1e1e; padding: 10px; border-radius: 12px; font-size: .9rem; }
+    .hint { font-size: .85rem; color: var(--muted); }
+    .footer { margin-top: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .link { color: var(--marrom-claro); text-decoration: none; }
+    .link:hover { text-decoration: underline; }
+    .divider { height:1px; background: rgba(255,255,255,0.08); margin: 16px 0; }
+    code.demo { display:inline-block; padding:4px 6px; border-radius:6px; background:#0f140f; border:1px solid rgba(255,255,255,0.08); }
+  </style>
 </head>
 <body>
-    <h1>Bem-vindo ao meu web app!</h1>
-    <p>Esta é a página principal.</p>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-circle">BV</div>
+      <div>
+        <h1>Belo Vidro • Acesso</h1>
+        <p>Faça login para abrir o painel correto automaticamente.</p>
+      </div>
+    </div>
 
-    <script>
-        // O método window.open() abre uma nova janela ou aba.
-        // O primeiro argumento é a URL que você quer abrir.
-        // O segundo argumento, '_blank', indica que a URL deve ser aberta em uma nova aba.
-        window.open('/longs/logns.html', '_blank');
-    </script>
+    <div class="error" id="errorBox">Usuário ou senha inválidos.</div>
+
+    <form id="loginForm" autocomplete="on">
+      <div>
+        <label for="email">Usuário (e-mail ou apelido)</label>
+        <input id="email" name="email" type="text" placeholder="ex.: biu/wagner" required />
+      </div>
+      <div>
+        <label for="password">Senha</label>
+        <input id="password" name="password" type="password" placeholder="••••••••" required />
+      </div>
+      <button class="btn" type="submit">Entrar</button>
+    </form>
+
+    <div class="divider"></div>
+
+    <div class="footer">
+      <small class="hint">Acesso baseado em <em>role</em>.</small>
+      <a class="link" href="#" id="verSessao">ver sessão</a>
+    </div>
+  </div>
+
+  <script>
+    // === MODIFICAÇÃO AQUI: ADICIONE A PROPRIEDADE `name` ===
+    const USERS = {
+      "wagner": {
+        password: "w12345",
+        role: "admin",
+        redirect: "/adm/painel%20adm.html",
+        name: "Wagner"
+      },
+      "jeferson": { // A chave do usuário "funcionario" foi alterada para "biu" para refletir o nome de login
+        password: "f123456",
+        role: "funcionariorota",
+        redirect: "/funcionario/painel%20do%20funcionario.html",
+        name: "Jeferson" // Adicionado o nome de exibição
+      },
+      "rogerio": { // A chave do usuário "funcionario" foi alterada para "rogerio" para refletir o nome de login
+        password: "123456",
+        role: "funcionariorota",
+        redirect: "/funcionario/painel%20do%20funcionario.html",
+        name: "Rogerio" // Adicionado o nome de exibição
+      },
+
+      "kaio": {
+        password: "123456",
+        role: "sistema",
+        redirect: "/funcionario/painel%20do%20funcionario.html",
+        name: "Kaio" // Adicionado o nome de exibição
+      }
+    };
+
+    // Chaves usadas no storage
+    const STORAGE_KEY = "bv.session";
+
+    // Se já estiver logado, pula o login
+    (function autoRedirectIfLogged() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const session = JSON.parse(raw);
+        if (session?.redirect) {
+          window.location.replace(session.redirect + window.location.search);
+        }
+      } catch (e) { /* ignora */ }
+    })();
+
+    document.getElementById("loginForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim().toLowerCase();
+      const password = document.getElementById("password").value;
+
+      const user = USERS[email];
+      if (!user || user.password !== password) {
+        showError("Usuário ou senha inválidos.");
+        return;
+      }
+
+      // === MODIFICAÇÃO AQUI: ADICIONE A PROPRIEDADE `name` NO OBJETO DE SESSÃO ===
+      const session = {
+        name: user.name, // Adiciona o nome do usuário à sessão
+        role: user.role,
+        redirect: user.redirect,
+        loginAt: new Date().toISOString()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+
+      // Redireciona para a página específica do usuário/role
+      window.location.href = user.redirect;
+    });
+
+    function showError(msg) {
+      const el = document.getElementById("errorBox");
+      el.textContent = msg;
+      el.style.display = "block";
+      setTimeout(() => el.style.display = "none", 4000);
+    }
+
+    // Utilitário: visualizar sessão atual (para debug)
+    document.getElementById("verSessao").addEventListener("click", (e) => {
+      e.preventDefault();
+      alert(localStorage.getItem(STORAGE_KEY) || "sem sessão");
+    });
+  </script>
 </body>
+
 </html>
