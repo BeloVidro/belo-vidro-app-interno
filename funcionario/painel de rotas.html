@@ -146,8 +146,8 @@
    (function protect(requiredRoles = ["funcionario", "funcionariorota" ]) {
     try {
         const s = JSON.parse(localStorage.getItem("bv.session") || "null");
-        if (!s || !requiredRoles.includes(s.role)) location.replace("index.html");
-    } catch(e){ location.replace("index.html"); }
+        if (!s || !requiredRoles.includes(s.role)) location.replace("https://belovidro.github.io/belo-vidro-app-interno");
+    } catch(e){ location.replace("https://belovidro.github.io/belo-vidro-app-interno"); }
 })();
 
         const sessao = JSON.parse(localStorage.getItem("bv.session") || "null");
@@ -467,10 +467,11 @@
 
         document.getElementById('btnSair').addEventListener('click', () => {
             localStorage.removeItem("bv.session");
-            window.location.href = "/index.html";
+            window.location.href = "https://belovidro.github.io/belo-vidro-app-interno";
         });
     </script>
 </body>
 
 </html>
+
 
