@@ -45,8 +45,8 @@
         (function protect(requiredRoles=["admin"]) {
             try {
                 const s = JSON.parse(localStorage.getItem("bv.session")||"null");
-                if (!s || !requiredRoles.includes(s.role)) location.replace("index.html");
-            } catch(e){ location.replace("index.html"); }
+                if (!s || !requiredRoles.includes(s.role)) location.replace("https://belovidro.github.io/belo-vidro-app-interno");
+            } catch(e){ location.replace("https://belovidro.github.io/belo-vidro-app-interno"); }
         })(["admin"]);
     </script>
 </head>
@@ -707,6 +707,7 @@
 </body>
 
 </html>
+
 
 
 
