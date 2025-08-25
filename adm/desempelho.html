@@ -76,7 +76,7 @@
             </div>
         </div>
         <nav class="space-y-3">
-              <nav class="space-y-3">
+             <nav class="space-y-3">
             <a href="relatorio-gastos.html">
             <button class="w-full flex items-center p-3 bg-green-100 rounded-lg">📋 Relatorio de Gastos</button></a>
             <a href="desempelho.html"><button class="w-full flex items-center p-3 bg-orange-100 rounded-lg">⭐ Desempelho</button>
@@ -172,7 +172,7 @@
                     <h3 class="text-gray-500">Tarefas Pendentes</h3>
                     <p id="tarefasPendentes" class="text-xl font-bold text-red-600">0</p>
                 </div>
-                 <div class="bg-white p-4 rounded-lg shadow text-center">
+                   <div class="bg-white p-4 rounded-lg shadow text-center">
                     <h3 class="text-gray-500">Tarefas em Andamento</h3>
                     <p id="tarefasEmAndamento" class="text-xl font-bold text-orange-600">0</p>
                 </div>
@@ -596,6 +596,8 @@
                 lineChartFilter.appendChild(option);
             });
             const totalFeitos = funcionarios.map(f => desempenhoTotal[f].rotasFeitas + desempenhoTotal[f].tarefasFeitas);
+            
+            // Destruir e recriar o Bar Chart
             if (barChart) barChart.destroy();
             barChart = new Chart(barChartCanvas, {
                 type: 'bar',
@@ -630,83 +632,54 @@
                 rotasData = labels.map(f => desempenhoTotal[f].rotasFeitas);
                 tarefasData = labels.map(f => desempenhoTotal[f].tarefasFeitas);
             } else {
-                labels = ["Tarefas", "Rotas"];
-                rotasData = [desempenhoTotal[selectedEmployee]?.rotasFeitas || 0];
-                tarefasData = [desempenhoTotal[selectedEmployee]?.tarefasFeitas || 0];
+                labels = ["Rotas", "Tarefas"];
+                rotasData = [desempenhoTotal[selectedEmployee].rotasFeitas];
+                tarefasData = [desempenhoTotal[selectedEmployee].tarefasFeitas];
             }
-
+            
+            // Destruir e recriar o Line Chart
             if (lineChart) lineChart.destroy();
             lineChart = new Chart(lineChartCanvas, {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [
-                        {
-                            label: 'Rotas Concluídas',
-                            data: rotasData,
-                            borderColor: 'rgb(34, 197, 94)',
-                            backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Tarefas Concluídas',
-                            data: tarefasData,
-                            borderColor: 'rgb(250, 204, 21)',
-                            backgroundColor: 'rgba(250, 204, 21, 0.2)',
-                            tension: 0.1
-                        }
-                    ]
+                    datasets: [{
+                        label: 'Rotas Concluídas',
+                        data: rotasData,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1
+                    }, {
+                        label: 'Tarefas Concluídas',
+                        data: tarefasData,
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                        tension: 0.1
+                    }]
                 },
                 options: {
                     responsive: true,
                     scales: {
-                        x: { title: { display: true, text: selectedEmployee === 'all' ? 'Funcionário' : 'Tipo' } },
-                        y: { beginAtZero: true, title: { display: true, text: 'Quantidade' } }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.y !== null) {
-                                        label += context.parsed.y;
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
+                        y: { beginAtZero: true }
                     }
                 }
             });
         }
         
-        function carregarDados() {
-            popularDestinatarios();
-            
-            const rotasRef = ref(db, "rotas");
-            const tarefasRef = ref(db, "tarefas");
-            
-            onValue(rotasRef, (snapshot) => {
-                allRotas = snapshot.val() || {};
-                processAndRenderAll();
-            });
+        // Inicialização (carga de dados do Firebase)
+        onValue(ref(db, 'rotas'), (snapshot) => {
+            allRotas = snapshot.val() || {};
+            processAndRenderAll();
+        });
 
-            onValue(tarefasRef, (snapshot) => {
-                allTarefas = snapshot.val() || {};
-                processAndRenderAll();
-            });
-            
-            checkAndRenderReminders();
-        }
+        onValue(ref(db, 'tarefas'), (snapshot) => {
+            allTarefas = snapshot.val() || {};
+            processAndRenderAll();
+        });
 
-        carregarDados();
+        checkAndRenderReminders();
+        popularDestinatarios();
         showMetrics('rotas');
     </script>
 </body>
-
 </html>
-
-
