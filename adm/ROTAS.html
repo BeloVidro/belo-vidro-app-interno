@@ -281,9 +281,15 @@
 
         // Carregar as rotas no carregamento inicial da página
         carregarRotas('all');
+
+          function logout() {
+            localStorage.removeItem("bv.session");
+            window.location.replace("https://belovidro.github.io/belo-vidro-app-interno");
+        }
     </script>
 
 </body>
 </html>
 
 ```
+
