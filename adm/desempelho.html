@@ -621,65 +621,57 @@
             updateLineChart();
         }
         
-        function updateLineChart() {
-            const selectedEmployee = lineChartFilter.value;
-            let rotasData = [];
-            let tarefasData = [];
-            let labels = [];
+      function updateLineChart() {
+    const selectedEmployee = lineChartFilter.value;
+    let chartLabels = [];
+    let rotasConcluidas = [];
+    let tarefasConcluidas = [];
 
-            if (selectedEmployee === 'all') {
-                labels = Object.keys(desempenhoTotal);
-                rotasData = labels.map(f => desempenhoTotal[f].rotasFeitas);
-                tarefasData = labels.map(f => desempenhoTotal[f].tarefasFeitas);
-            } else {
-                labels = ["Rotas", "Tarefas"];
-                rotasData = [desempenhoTotal[selectedEmployee].rotasFeitas];
-                tarefasData = [desempenhoTotal[selectedEmployee].tarefasFeitas];
-            }
-            
-            // Destruir e recriar o Line Chart
-            if (lineChart) lineChart.destroy();
-            lineChart = new Chart(lineChartCanvas, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Rotas Concluídas',
-                        data: rotasData,
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        tension: 0.1
-                    }, {
-                        label: 'Tarefas Concluídas',
-                        data: tarefasData,
-                        borderColor: 'rgba(255, 159, 64, 1)',
-                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
+    if (selectedEmployee === 'all') {
+        chartLabels = Object.keys(desempenhoTotal);
+        rotasConcluidas = chartLabels.map(f => desempenhoTotal[f].rotasFeitas || 0);
+        tarefasConcluidas = chartLabels.map(f => desempenhoTotal[f].tarefasFeitas || 0);
+    } else {
+        const dadosFuncionario = desempenhoTotal[selectedEmployee];
+        if (dadosFuncionario) {
+            chartLabels = [selectedEmployee];
+            rotasConcluidas = [dadosFuncionario.rotasFeitas || 0];
+            tarefasConcluidas = [dadosFuncionario.tarefasFeitas || 0];
         }
-        
-        // Inicialização (carga de dados do Firebase)
-        onValue(ref(db, 'rotas'), (snapshot) => {
-            allRotas = snapshot.val() || {};
-            processAndRenderAll();
-        });
+    }
 
-        onValue(ref(db, 'tarefas'), (snapshot) => {
-            allTarefas = snapshot.val() || {};
-            processAndRenderAll();
-        });
-
-        checkAndRenderReminders();
-        popularDestinatarios();
-        showMetrics('rotas');
+    if (lineChart) lineChart.destroy();
+    
+    lineChart = new Chart(lineChartCanvas, {
+        type: 'line',
+        data: {
+            labels: chartLabels,
+            datasets: [
+                {
+                    label: 'Rotas Concluídas',
+                    data: rotasConcluidas,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1
+                },
+                {
+                    label: 'Tarefas Concluídas',
+                    data: tarefasConcluidas,
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                    tension: 0.1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
     </script>
 </body>
 </html>
+
