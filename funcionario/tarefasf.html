@@ -102,7 +102,7 @@
         function protect() {
             const session = localStorage.getItem("bv.session");
             if (!session) {
-                window.location.href = "/index.html";
+                window.location.href = "https://belovidro.github.io/belo-vidro-app-interno";
                 return;
             }
         }
@@ -240,11 +240,12 @@
         
         document.getElementById('btnSair').addEventListener('click', () => {
             localStorage.removeItem("bv.session");
-            window.location.href = "/index.html";
+            window.location.href = "https://belovidro.github.io/belo-vidro-app-interno";
         });
 
     </script>
 </body>
 </html>
+
 
 
