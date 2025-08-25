@@ -300,25 +300,33 @@
             horasExtras: []
         };
         
-        async function loadAllData() {
-            try {
-                const [funcionariosSnap, gastosSnap, horasExtrasSnap] = await Promise.all([
-                    get(funcionariosRef),
-                    get(gastosRef),
-                    get(horasExtrasRef)
-                ]);
+         async function loadAllData() {
+    try {
+        onValue(funcionariosRef, (snapshot) => {
+            allData.funcionarios = Object.entries(snapshot.val() || {}).map(([id, info]) => ({ id, ...info }));
+            // Chama a renderização e o popular de selects sempre que os dados de funcionários mudarem
+            renderizarCardsFuncionarios();
+            popularFuncionariosNosSelects();
+        });
 
-                allData.funcionarios = Object.entries(funcionariosSnap.val() || {}).map(([id, info]) => ({ id, ...info }));
-                allData.gastos = Object.entries(gastosSnap.val() || {}).map(([id, gasto]) => ({ id, ...gasto }));
-                allData.horasExtras = Object.entries(horasExtrasSnap.val() || {}).map(([id, hora]) => ({ id, ...hora }));
+        onValue(gastosRef, (snapshot) => {
+            allData.gastos = Object.entries(snapshot.val() || {}).map(([id, gasto]) => ({ id, ...gasto }));
+            renderizarCardsFuncionarios();
+        });
 
-                renderizarCardsFuncionarios();
-                popularFuncionariosNosSelects();
-                checkAndRenderReminders();
-                
-            } catch (error) {
-                console.error("Erro ao carregar dados do Firebase:", error);
-            }
+        onValue(horasExtrasRef, (snapshot) => {
+            allData.horasExtras = Object.entries(snapshot.val() || {}).map(([id, hora]) => ({ id, ...hora }));
+            renderizarCardsFuncionarios();
+        });
+
+        onValue(lembreteRef, () => {
+            checkAndRenderReminders();
+        });
+
+    } catch (error) {
+        console.error("Erro ao carregar dados do Firebase:", error);
+    }
+}
         }
         
         window.openRegisterModal = () => {
@@ -575,5 +583,6 @@
 </body>
 
 </html>
+
 
 
