@@ -146,8 +146,8 @@
    (function protect(requiredRoles = ["funcionario", "funcionariorota" ]) {
     try {
         const s = JSON.parse(localStorage.getItem("bv.session") || "null");
-        if (!s || !requiredRoles.includes(s.role)) location.replace("/longs/logns.html");
-    } catch(e){ location.replace("/longs/logns.html"); }
+        if (!s || !requiredRoles.includes(s.role)) location.replace("index.html");
+    } catch(e){ location.replace("index.html"); }
 })();
 
         const sessao = JSON.parse(localStorage.getItem("bv.session") || "null");
@@ -471,4 +471,5 @@
         });
     </script>
 </body>
+
 </html>
