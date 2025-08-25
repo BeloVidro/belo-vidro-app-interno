@@ -49,8 +49,8 @@
       (function protect(requiredRoles=["chefe", "admin"]) {
         try {
           const s = JSON.parse(localStorage.getItem("bv.session")||"null");
-          if (!s || !requiredRoles.includes(s.role)) location.replace("/logns/logns.html");
-        } catch(e){ location.replace("/logns/logns.html"); }
+          if (!s || !requiredRoles.includes(s.role)) location.replace("https://belovidro.github.io/belo-vidro-app-interno");
+        } catch(e){ location.replace("https://belovidro.github.io/belo-vidro-app-interno"); }
       })();
     </script>
 </head>
@@ -59,7 +59,7 @@
     <script>
         function logout() {
             localStorage.removeItem("bv.session");
-            window.location.replace("/logns/logns.html");
+            window.location.replace("https://belovidro.github.io/belo-vidro-app-interno");
         }
     </script>
 
@@ -708,3 +708,4 @@
 </body>
 
 </html>
+
