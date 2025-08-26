@@ -84,8 +84,8 @@
         (function protect(requiredRoles=["admin"]) {
             try {
                 const s = JSON.parse(localStorage.getItem("bv.session")||"null");
-                if (!s || !requiredRoles.includes(s.role)) location.replace("https://belovidro.github.io/belo-vidro-app-interno");
-            } catch(e){ location.replace("https://belovidro.github.io/belo-vidro-app-interno/"); }
+                if (!s || !requiredRoles.includes(s.role)) location.replace("/longs/logns.html");
+            } catch(e){ location.replace("/longs/logns.html"); }
         })(["admin"]);
     </script>
 </head>
@@ -94,7 +94,7 @@
     <script>
         function logout() {
             localStorage.removeItem("bv.session");
-            window.location.replace("https://belovidro.github.io/belo-vidro-app-interno/");
+            window.location.replace("/longs/logns.html");
         }
     </script>
 
@@ -110,19 +110,19 @@
                 </button>
             </div>
         </div>
-           <nav class="space-y-3">
-            <a href="relatorio-gastos.html">
+        <nav class="space-y-3">
+            <a href="/adm/relatorio-gastos.html">
             <button class="w-full flex items-center p-3 bg-green-100 rounded-lg">📋 Relatorio de Gastos</button></a>
-            <a href="desempelho.html"><button class="w-full flex items-center p-3 bg-orange-100 rounded-lg">⭐ Desempelho</button>
+            <a href="/adm/desempelho.html"><button class="w-full flex items-center p-3 bg-orange-100 rounded-lg">⭐ Desempelho</button>
             </a>
-            <a href="TAREFAS.html"><button class="w-full flex items-center p-3 bg-red-100 rounded-lg">📅 Tarefas</button></a>
-            <a href="ROTAS.html"><button class="w-full flex items-center p-3 bg-blue-100 rounded-lg">🗺️ Rotas</button></a>
-            <a href="painel-adm.html"><button id="btnExtraHours" class="w-full flex items-center p-3 bg-purple-100 rounded-lg">⏱ Extra Hours</button></a>
+            <a href="/adm/TAREFAS.html"><button class="w-full flex items-center p-3 bg-red-100 rounded-lg">📅 Tarefas</button></a>
+            <a href="/adm/ROTAS.html"><button class="w-full flex items-center p-3 bg-blue-100 rounded-lg">🗺️ Rotas</button></a>
+            <a href="/adm/painel%20adm.html"><button id="btnExtraHours" class="w-full flex items-center p-3 bg-purple-100 rounded-lg">⏱ Extra Hours</button></a>
             <div class="mt-auto">
                 <button onclick="logout()" class=" w-full flex items-center justify-center bg-green-800 hover:bg-slate-300 text-slate-800 py-2 px-4 rounded-lg transition font-medium">
                     Sair
                 </button>
-            </div> 
+            </div>
     </aside>
 
     <main class="flex-1 p-8 overflow-y-auto">
@@ -300,33 +300,25 @@
             horasExtras: []
         };
         
-         async function loadAllData() {
-    try {
-        onValue(funcionariosRef, (snapshot) => {
-            allData.funcionarios = Object.entries(snapshot.val() || {}).map(([id, info]) => ({ id, ...info }));
-            // Chama a renderização e o popular de selects sempre que os dados de funcionários mudarem
-            renderizarCardsFuncionarios();
-            popularFuncionariosNosSelects();
-        });
+        async function loadAllData() {
+            try {
+                const [funcionariosSnap, gastosSnap, horasExtrasSnap] = await Promise.all([
+                    get(funcionariosRef),
+                    get(gastosRef),
+                    get(horasExtrasRef)
+                ]);
 
-        onValue(gastosRef, (snapshot) => {
-            allData.gastos = Object.entries(snapshot.val() || {}).map(([id, gasto]) => ({ id, ...gasto }));
-            renderizarCardsFuncionarios();
-        });
+                allData.funcionarios = Object.entries(funcionariosSnap.val() || {}).map(([id, info]) => ({ id, ...info }));
+                allData.gastos = Object.entries(gastosSnap.val() || {}).map(([id, gasto]) => ({ id, ...gasto }));
+                allData.horasExtras = Object.entries(horasExtrasSnap.val() || {}).map(([id, hora]) => ({ id, ...hora }));
 
-        onValue(horasExtrasRef, (snapshot) => {
-            allData.horasExtras = Object.entries(snapshot.val() || {}).map(([id, hora]) => ({ id, ...hora }));
-            renderizarCardsFuncionarios();
-        });
-
-        onValue(lembreteRef, () => {
-            checkAndRenderReminders();
-        });
-
-    } catch (error) {
-        console.error("Erro ao carregar dados do Firebase:", error);
-    }
-}
+                renderizarCardsFuncionarios();
+                popularFuncionariosNosSelects();
+                checkAndRenderReminders();
+                
+            } catch (error) {
+                console.error("Erro ao carregar dados do Firebase:", error);
+            }
         }
         
         window.openRegisterModal = () => {
@@ -581,8 +573,4 @@
         loadAllData();
     </script>
 </body>
-
 </html>
-
-
-
