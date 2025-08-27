@@ -413,7 +413,7 @@
                         };
                     }
                     desempenhoTotal[nomeFunc].tarefasSolicitadas++;
-                    if (tarefa.status === 'concluido' || tarefa.status === 'concluida') {
+                    if (tarefa.status === 'concluido' || tarefa.status === 'concluida' || tarefa.status === 'concluída') || tarefa.status === 'concluído') {
                         desempenhoTotal[nomeFunc].tarefasFeitas++;
                     }
                 }
@@ -706,4 +706,5 @@
     </script>
 </body>
 </html>
+
 
