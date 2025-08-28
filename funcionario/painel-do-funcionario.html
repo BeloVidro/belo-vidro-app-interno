@@ -1,183 +1,214 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Painel do Funcionário — Belo Vidro</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 100;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        background-color: rgba(0,0,0,0.4);
-        justify-content: center;
-        align-items: center;
-    }
-    .modal-content {
-        background-color: #1f2937; /* Cor de fundo escura */
-        color: white; /* Cor do texto */
-        padding: 24px;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        width: 90%;
-        max-width: 600px;
-    }
-    .notification-bell-container {
-        position: relative;
-    }
-    .notification-dot {
-        position: absolute;
-        top: -2px;
-        right: -2px;
-        height: 10px;
-        width: 10px;
-        background-color: #ef4444; /* red-500 */
-        border-radius: 50%;
-        display: none; /* Inicia oculto */
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Painel do Funcionário — Belo Vidro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #1f2937; /* Cor de fundo escura */
+            color: white; /* Cor do texto */
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 90%;
+        }
+        /* Media query para telas maiores para ajustar a largura do modal */
+        @media (min-width: 768px) {
+            .modal-content {
+                max-width: 600px;
+            }
+        }
+        .notification-bell-container {
+            position: relative;
+        }
+        .notification-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            height: 10px;
+            width: 10px;
+            background-color: #ef4444; /* red-500 */
+            border-radius: 50%;
+            display: none; /* Inicia oculto */
+        }
+    </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex">
-  <aside class="w-72 bg-white text-slate-800 p-6 shadow-2xl flex flex-col gap-6">
-
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="h-10 w-10 bg-emerald-600 rounded-md"></div>
-        <div class="font-bold text-lg">Belo Vidro</div>
-      </div>
-      <button onclick="logout()" class="text-xs text-slate-500 hover:text-red-600 font-medium transition-colors">
-        Sair
-      </button>
-    </div>
-
-    <div class="space-y-2">
-      <div class="text-xs uppercase tracking-wider text-slate-500">Acesso</div>
-      <div class="text-sm font-medium">Usuário: <span id="nome-usuario-sidebar" class="text-emerald-600"></span></div>
-    </div>
-    <a href="tarefasf.html">
-        <button class="w-full bg-slate-300 hover:bg-slate-200 text-slate-800 py-2 rounded-lg transition">
-            📋 Minhas Tarefas
-        </button>
-      </a>
-    <a id="btnMinhaRota" href="painel de rotas.html" class=" flex items-center justify-center bg-slate-200 hover:bg-slate-300 text-slate-800 py-2 px-4 rounded-lg transition font-medium"> 🗺️ Minha Rota</a>
- 
-    <div class="mt-auto text-xs text-slate-500">v0.1 • Realtime DB</div>
-  </aside>
-
-  <script>
-    function logout() {
-      localStorage.removeItem("bv.session");
-      window.location.replace("https://belovidro.github.io/belo-vidro-app-interno");
-    }
+<body class="bg-slate-900 text-white min-h-screen block lg:flex">
+    <aside id="menu-aside" class="w-72 bg-white text-slate-800 p-6 shadow-2xl flex-col gap-6 hidden lg:flex">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="h-10 w-10 bg-emerald-600 rounded-md"></div>
+                <div class="font-bold text-lg">Belo Vidro</div>
+            </div>
+            <button onclick="logout()" class="text-xs text-slate-500 hover:text-red-600 font-medium transition-colors">
+                Sair
+            </button>
+        </div>
+        <div class="space-y-2">
+            <div class="text-xs uppercase tracking-wider text-slate-500">Acesso</div>
+            <div class="text-sm font-medium">Usuário: <span id="nome-usuario-sidebar" class="text-emerald-600"></span></div>
+        </div>
+        <a href="tarefasf.html">
+            <button class="w-full bg-slate-300 hover:bg-slate-200 text-slate-800 py-2 rounded-lg transition">
+                📋 Minhas Tarefas
+            </button>
+        </a>
+        <a id="btnMinhaRota" href="painel de rotas.html" class=" flex items-center justify-center bg-slate-200 hover:bg-slate-300 text-slate-800 py-2 px-4 rounded-lg transition font-medium"> 🗺️ Minha Rota</a>
     
-    // A função de proteção precisa ser definida globalmente para ser chamada
-    (function protect(requiredRoles = ["funcionario", "funcionariorota", "sistema", "vendedor"]) {
-      try {
-        const s = JSON.parse(localStorage.getItem("bv.session") || "null");
-        if (!s || !requiredRoles.includes(s.role)) location.replace("https://belovidro.github.io/belo-vidro-app-interno/");
-      } catch(e){ location.replace("https://belovidro.github.io/belo-vidro-app-interno/"); }
-    })();
-  </script>
+        <div class="mt-auto text-xs text-slate-500">v0.1 • Realtime DB</div>
+    </aside>
 
-  <main class="flex-1 p-6">
-    <header class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">Meu Painel</h1>
-      <div class="flex items-center gap-3">
-        <span id="nome-usuario-header" class="text-sm text-slate-300"></span>
-        <div class="notification-bell-container">
-            <button onclick="toggleModal('notificationModal')" class="relative text-white hover:text-green-500 focus:outline-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405C18.21 14.73 18 13.918 18 13V6a6 6 0 00-12 0v7c0 .918-.21 1.73-.595 2.595L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9" />
-                </svg>
-                <span id="notificationDot" class="notification-dot"></span>
-            </button>
-        </div>
-        <div class="h-10 w-10 rounded-full bg-slate-700"></div>
-      </div>
-    </header>
-
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <div class="bg-slate-800 rounded-xl p-5 shadow">
-        <div class="text-slate-400">Salário Base</div>
-        <div id="salarioBase" class="text-3xl font-semibold mt-2">R$ 5.000,00</div>
-      </div>
-      <div class="bg-slate-800 rounded-xl p-5 shadow">
-        <div class="text-slate-400">Total de Horas Aprovadas</div>
-        <div id="totalHorasAprov" class="text-3xl font-semibold mt-2">0 h</div>
-      </div>
-      <div class="bg-slate-800 rounded-xl p-5 shadow">
-        <div class="text-slate-400">Total Recebido (Horas Extras)</div>
-        <div id="totalRecebido" class="text-3xl font-semibold mt-2">R$ 0,00</div>
-      </div>
-    </section>
-
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-      <div class="bg-slate-800 rounded-xl p-5 shadow">
-        <h2 class="text-xl font-semibold mb-4">Solicitar Horas Extras</h2>
-        <form id="formSolicitacao" class="space-y-3">
-          <div>
-            <label class="block text-sm text-slate-300 mb-1">Data</label>
-            <input id="inpData" type="date" required
-                   class="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 outline-none focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm text-slate-300 mb-1">Horas solicitadas</label>
-            <input id="inpHoras" type="number" min="1" step="1" required
-                   class="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 outline-none focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm text-slate-300 mb-1">Observação</label>
-            <textarea id="inpObs" rows="3" placeholder="Ex.: plantão, entrega..."
-                      class="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 outline-none focus:border-indigo-500"></textarea>
-          </div>
-          <button class="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg py-2 font-medium transition">
-            Enviar Solicitação
-          </button>
-          <p class="text-xs text-slate-400">
-            * A solicitação será gravada em <code>horas-extras/REGISTROX</code> com status <b>pendente</b>.
-          </p>
-        </form>
-      </div>
-      
-      <div class="space-y-6">
-        <div class="bg-slate-800 rounded-xl p-5 shadow">
-          <h2 class="text-xl font-semibold mb-4">Minhas Horas (todas)</h2>
-          <ul id="listaHoras" class="space-y-2 text-sm"></ul>
-        </div>
-        <div class="bg-slate-800 rounded-xl p-5 shadow">
-          <h2 class="text-xl font-semibold mb-4">Valores já recebidos</h2>
-          <ul id="listaValores" class="space-y-2 text-sm"></ul>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <div id="notificationModal" class="modal">
-    <div class="modal-content">
-        <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-4">
-            <h3 class="text-2xl font-bold">📩 Lembretes e Notificações</h3>
-            <button onclick="toggleModal('notificationModal')" class="text-gray-400 hover:text-gray-200 text-3xl">&times;</button>
-        </div>
-
-        <div id="receivedRemindersContainer" class="space-y-4">
-            <div class="text-gray-500">Nenhum lembrete recebido.</div>
-        </div>
+    <script>
+        function logout() {
+            localStorage.removeItem("bv.session");
+            window.location.replace("https://belovidro.github.io/belo-vidro-app-interno");
+        }
         
-        <div class="mt-6 text-center">
-            <button onclick="openSendReminderModal()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg py-2 font-medium transition">
-                Criar novo Lembrete
+        // A função de proteção precisa ser definida globalmente para ser chamada
+        (function protect(requiredRoles = ["funcionario", "funcionariorota", "sistema", "vendedor"]) {
+            try {
+                const s = JSON.parse(localStorage.getItem("bv.session") || "null");
+                if (!s || !requiredRoles.includes(s.role)) location.replace("https://belovidro.github.io/belo-vidro-app-interno/");
+            } catch(e){ location.replace("https://belovidro.github.io/belo-vidro-app-interno/"); }
+        })();
+    </script>
+
+    <main class="flex-1 p-6">
+        <header class="flex items-center justify-between mb-6">
+            <button id="menu-btn" class="text-white focus:outline-none lg:hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-16 6h16" />
+                </svg>
             </button>
+            <h1 class="text-2xl font-bold">Meu Painel</h1>
+            <div class="flex items-center gap-3">
+                <span id="nome-usuario-header" class="text-sm text-slate-300"></span>
+                <div class="notification-bell-container">
+                    <button onclick="toggleModal('notificationModal')" class="relative text-white hover:text-green-500 focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405C18.21 14.73 18 13.918 18 13V6a6 6 0 00-12 0v7c0 .918-.21 1.73-.595 2.595L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9" />
+                        </svg>
+                        <span id="notificationDot" class="notification-dot"></span>
+                    </button>
+                </div>
+                <div class="h-10 w-10 rounded-full bg-slate-700"></div>
+            </div>
+        </header>
+
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-slate-800 rounded-xl p-5 shadow">
+                <div class="text-slate-400">Salário Base</div>
+                <div id="salarioBase" class="text-3xl font-semibold mt-2">R$ 5.000,00</div>
+            </div>
+            <div class="bg-slate-800 rounded-xl p-5 shadow">
+                <div class="text-slate-400">Total de Horas Aprovadas</div>
+                <div id="totalHorasAprov" class="text-3xl font-semibold mt-2">0 h</div>
+            </div>
+            <div class="bg-slate-800 rounded-xl p-5 shadow">
+                <div class="text-slate-400">Total Recebido (Horas Extras)</div>
+                <div id="totalRecebido" class="text-3xl font-semibold mt-2">R$ 0,00</div>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <div class="bg-slate-800 rounded-xl p-5 shadow">
+                <h2 class="text-xl font-semibold mb-4">Solicitar Horas Extras</h2>
+                <form id="formSolicitacao" class="space-y-3">
+                    <div>
+                        <label class="block text-sm text-slate-300 mb-1">Data</label>
+                        <input id="inpData" type="date" required
+                                class="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-slate-300 mb-1">Horas solicitadas</label>
+                        <input id="inpHoras" type="number" min="1" step="1" required
+                                class="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-slate-300 mb-1">Observação</label>
+                        <textarea id="inpObs" rows="3" placeholder="Ex.: plantão, entrega..."
+                                    class="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 outline-none focus:border-indigo-500"></textarea>
+                    </div>
+                    <button class="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg py-2 font-medium transition">
+                        Enviar Solicitação
+                    </button>
+                    <p class="text-xs text-slate-400">
+                        * A solicitação será gravada em <code>horas-extras/REGISTROX</code> com status <b>pendente</b>.
+                    </p>
+                </form>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="bg-slate-800 rounded-xl p-5 shadow">
+                    <h2 class="text-xl font-semibold mb-4">Minhas Horas (todas)</h2>
+                    <ul id="listaHoras" class="space-y-2 text-sm"></ul>
+                </div>
+                <div class="bg-slate-800 rounded-xl p-5 shadow">
+                    <h2 class="text-xl font-semibold mb-4">Valores já recebidos</h2>
+                    <ul id="listaValores" class="space-y-2 text-sm"></ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="notificationModal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-4">
+                <h3 class="text-2xl font-bold">📩 Lembretes e Notificações</h3>
+                <button onclick="toggleModal('notificationModal')" class="text-gray-400 hover:text-gray-200 text-3xl">&times;</button>
+            </div>
+            <div id="receivedRemindersContainer" class="space-y-4">
+                <div class="text-gray-500">Nenhum lembrete recebido.</div>
+            </div>
+            
+            <div class="mt-6 text-center">
+                <button onclick="openSendReminderModal()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg py-2 font-medium transition">
+                    Criar novo Lembrete
+                </button>
+            </div>
         </div>
     </div>
-  </div>
+
+    <div id="sendReminderModal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-4">
+                <h3 class="text-2xl font-bold">✍️ Enviar Lembrete</h3>
+                <button onclick="toggleModal('sendReminderModal')" class="text-gray-400 hover:text-gray-200 text-3xl">&times;</button>
+            </div>
+            <form id="formLembrete" class="space-y-3">
+                <div>
+                    <label class="block text-sm text-slate-300 mb-1">Destinatário</label>
+                    <input id="inpDestinatario" type="text" required
+                            class="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-300 mb-1">Mensagem</label>
+                    <textarea id="inpMensagem" rows="3" required
+                                class="w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 outline-none focus:border-indigo-500"></textarea>
+                </div>
+                <button class="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg py-2 font-medium transition">
+                    Enviar Lembrete
+                </button>
+            </form>
+        </div>
+    </div>
 
   <div id="sendReminderModal" class="modal">
     <div class="modal-content">
@@ -496,6 +527,7 @@
   </script>
 </body>
 </html>
+
 
 
 
