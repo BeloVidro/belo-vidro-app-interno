@@ -300,7 +300,14 @@
             .then(() => console.log("Lembrete marcado como lido"))
             .catch(error => console.error("Erro ao marcar como lido:", error));
     };
+  const menuBtn = document.getElementById("menu-btn");
+  const menuAside = document.getElementById("menu-aside");
 
+  menuBtn.addEventListener("click", () => {
+    // alterna se está escondido ou visível
+    menuAside.classList.toggle("hidden");
+    menuAside.classList.toggle("flex"); 
+  });
     function checkAndRenderReminders() {
       const lembreteRef = ref(db, 'lembrete');
       onValue(lembreteRef, (snapshot) => {
@@ -527,6 +534,7 @@
   </script>
 </body>
 </html>
+
 
 
 
