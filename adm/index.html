@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Gastos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="relatorio.html" class="nav-link active">Relatório de Gastos</a></li>
+                <li><a href="desempenho.html" class="nav-link">Desempenho</a></li>
+                <li><a href="tarefas.html" class="nav-link">Tarefas</a></li>
+                <li><a href="rotas.html" class="nav-link">Rotas</a></li>
+                <li><a href="extra-hours.html" class="nav-link">Extra Hours</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <a href="#" class="nav-link logout">Sair</a>
+            </div>
+        </nav>
+    </aside>
+
+    <div class="main-content">
+        <header>
+            <h1>Relatório de Gastos por Funcionário</h1>
+            <div class="filter-controls">
+                <button id="filter-today">Hoje</button>
+                <button id="filter-week">Esta Semana</button>
+                <button id="filter-month">Este Mês</button>
+                <button id="filter-all">Todas</button>
+            </div>
+            <div class="custom-date-filter">
+                <label for="start-date">De:</label>
+                <input type="date" id="start-date">
+                <label for="end-date">Até:</label>
+                <input type="date" id="end-date">
+                <button id="filter-custom">Filtrar</button>
+            </div>
+        </header>
+
+        <div class="cards-and-total-container">
+            <main class="card-container" id="card-container">
+                </main>
+
+            <div id="total-gastos-gerais-card"></div>
+        </div>
+
+        <div id="modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" onclick="fecharModal()">&times;</span>
+                <div id="modal-body">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+
+</body>
+</html>

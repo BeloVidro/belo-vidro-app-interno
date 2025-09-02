@@ -1,0 +1,326 @@
+/*
+    --------------------------------
+    ESTILOS GERAIS DO DASHBOARD
+    --------------------------------
+*/
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f4f7f9;
+    margin: 0;
+    display: flex;
+    color: #333;
+}
+
+/*
+    --------------------------------
+    BARRA LATERAL (SIDEBAR)
+    --------------------------------
+*/
+
+.sidebar {
+    width: 250px;
+    background-color: #ffffff;
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 100vh;
+}
+
+.sidebar-header h3 {
+    text-align: center;
+    color: #00ff37;
+    font-size: 1.8em;
+    margin-bottom: 30px;
+}
+
+.sidebar-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-nav ul li {
+    margin-bottom: 10px;
+}
+
+.sidebar-nav .nav-link {
+    display: block;
+    padding: 12px 15px;
+    color: #555;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.sidebar-nav .nav-link:hover {
+    background-color: #e9ecef;
+    color: #00ff00;
+}
+
+.sidebar-nav .nav-link.active {
+    background-color: #2bff00;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.sidebar-footer {
+    border-top: 1px solid #e0e6e9;
+    padding-top: 20px;
+}
+
+.sidebar-footer .logout {
+    color: #dc3545;
+}
+
+.sidebar-footer .logout:hover {
+    background-color: #f8d7da;
+}
+
+/*
+    --------------------------------
+    CONTEÚDO PRINCIPAL
+    --------------------------------
+*/
+
+.main-content {
+    flex-grow: 1;
+    padding: 40px;
+}
+
+header h1 {
+    font-size: 2.5em;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.filter-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.filter-controls button {
+    padding: 10px 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.filter-controls button:hover {
+    background-color: #e9ecef;
+}
+
+.custom-date-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.custom-date-filter input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/*
+    --------------------------------
+    ESTILOS DOS CARDS E LAYOUT
+    --------------------------------
+*/
+
+/* O container para organizar os cards dos funcionários e o card de total geral */
+.cards-and-total-container {
+    display: flex;
+    gap: 20px; /* Aumenta o espaço entre os cards */
+    align-items: flex-start; /* Alinha os itens no topo */
+    flex-wrap: wrap; /* Permite que os cards quebrem a linha em telas menores */
+}
+
+/* O container dos cards de funcionário */
+.card-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px; /* Espaço entre os cards dos funcionários */
+    flex: 1; /* Permite que ele cresça para ocupar o espaço */
+}
+
+/* Estilo do card individual de funcionário */
+.employee-card {
+    background-color: #ffffff;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+    width: 220px; /* Largura fixa para cada card */
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.employee-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.employee-card .employee-photo {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 15px;
+    border: 3px solid #007bff;
+}
+
+.employee-card h3 {
+    margin: 0;
+    font-size: 1.2em;
+}
+
+.employee-card p {
+    margin-top: 5px;
+    font-size: 1em;
+    color: #555;
+    font-weight: bold;
+}
+
+/*
+    --------------------------------
+    ESTILOS DO CARD DESTACADO (GASTOS GERAIS)
+    --------------------------------
+*/
+
+.card-destacado {
+    background-color:  #187c04; /* Fundo escuro para destaque */
+    color: #ffffff;
+    border-radius: 15px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    padding: 30px;
+    text-align: center;
+    width: 300px; /* Largura para o card destacado */
+    height: fit-content;
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.card-destacado:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.card-destacado h3 {
+    margin: 0;
+    font-size: 1.6em;
+    font-weight: 500;
+}
+
+.card-destacado p {
+    font-size: 2.8em;
+    font-weight: bold;
+    margin-top: 10px;
+    color: #f39c12; /* Cor de destaque para o valor, um laranja forte */
+}
+
+/*
+    --------------------------------
+    ESTILOS DO MODAL
+    --------------------------------
+*/
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    animation: fadeIn 0.3s;
+}
+
+.close-button {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #333;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    border-bottom: 2px solid #e0e6e9;
+    padding-bottom: 10px;
+}
+
+.modal-content form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.modal-content input, .modal-content button {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+.modal-content button {
+    background-color: #28a745;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.3s;
+}
+
+.modal-content button:hover {
+    background-color: #218838;
+}
+
+#lista-de-gastos {
+    list-style-type: none;
+    padding: 0;
+}
+
+#lista-de-gastos li {
+    background-color: #e9ecef;
+    margin-bottom: 8px;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
