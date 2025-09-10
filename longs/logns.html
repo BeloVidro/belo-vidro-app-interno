@@ -180,7 +180,7 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 
       // Redireciona para a página específica do usuário/role
-      window.location.href = user.redirect;
+      window.location.href = `${user.redirect}?userId=${encodeURIComponent(email)}`;
     });
 
     function showError(msg) {
@@ -197,4 +197,5 @@
     });
   </script>
 </body>
+
 </html>
