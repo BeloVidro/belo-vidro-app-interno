@@ -4,9 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Login • Belo Vidro</title>
-  <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0f5132">
-
   <style>
     :root {
       --verde-escuro: #0e5135;
@@ -123,33 +120,27 @@
       "wagner": {
         password: "w12345",
         role: "admin",
-        redirect: "adm/painel-adm.html",
+        redirect: "/adm/painel%20adm.html",
         name: "Wagner"
       },
       "jeferson": { // A chave do usuário "funcionario" foi alterada para "biu" para refletir o nome de login
         password: "f123456",
         role: "funcionariorota",
-        redirect: "funcionario/painel-do-funcionario.html",
+        redirect: "/funcionario/painel%20do%20funcionario.html",
         name: "Jeferson" // Adicionado o nome de exibição
       },
       "rogerio": { // A chave do usuário "funcionario" foi alterada para "rogerio" para refletir o nome de login
         password: "123456",
         role: "funcionariorota",
-        redirect: "funcionario/painel-do-funcionario.html",
+        redirect: "/funcionario/painel%20do%20funcionario.html",
         name: "Rogerio" // Adicionado o nome de exibição
       },
 
       "kaio": {
         password: "123456",
         role: "sistema",
-        redirect: "funcionario/painel-do-funcionario.html",
+        redirect: "/funcionario/painel%20do%20funcionario.html",
         name: "Kaio" // Adicionado o nome de exibição
-      },
-      "iago": {
-        password: "123456",
-        role: "sistema",
-        redirect: "funcionario/painel-do-funcionario.html",
-        name: "Iago" // Adicionado o nome de exibição
       }
     };
 
@@ -189,7 +180,7 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 
       // Redireciona para a página específica do usuário/role
-      window.location.href = user.redirect;
+      window.location.href = `${user.redirect}?userId=${encodeURIComponent(email)}`;
     });
 
     function showError(msg) {
@@ -204,17 +195,7 @@
       e.preventDefault();
       alert(localStorage.getItem(STORAGE_KEY) || "sem sessão");
     });
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(reg => console.log('✅ Service Worker registrado:', reg))
-        .catch(err => console.error('❌ Erro ao registrar o SW:', err));
-    });
-  }
-</script>
-
+  </script>
 </body>
+
 </html>
-
-
-
