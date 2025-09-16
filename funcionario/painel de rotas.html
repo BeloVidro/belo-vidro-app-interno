@@ -7,14 +7,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            background-color: #1a202c; /* Fundo escuro */
-            color: #e2e8f0; /* Texto claro */
+            background-color: #1a202c;
+            color: #e2e8f0;
         }
         .sidebar {
-            background-color: #2d3748; /* Cor da barra lateral */
+            background-color: #2d3748;
+            transition: transform 0.3s ease-in-out;
         }
         .main-content {
-            background-color: #2d3748; /* Cor do container principal */
+            background-color: #2d3748;
         }
         .hidden {
             display: none;
@@ -48,18 +49,61 @@
             max-width: 500px;
         }
         .filter-button.active {
-            background-color: #48bb78; /* Verde */
+            background-color: #48bb78;
             color: white;
         }
         .filter-button {
-            background-color: #4a5568; /* Cinza escuro */
+            background-color: #4a5568;
             color: #e2e8f0;
+        }
+
+        /* --- Estilos para Mobile --- */
+        @media (max-width: 768px) {
+            .desktop-layout {
+                flex-direction: column;
+            }
+            .desktop-sidebar {
+                display: none;
+            }
+            .mobile-header {
+                display: flex;
+                padding: 1rem;
+                background-color: #1a202c;
+                justify-content: space-between;
+                align-items: center;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                z-index: 40;
+            }
+            .mobile-sidebar-modal {
+                position: fixed;
+                top: 0;
+                left: -100%;
+                z-index: 50;
+                width: 80%;
+                height: 100%;
+            }
+            .modal-open {
+                transform: translateX(100%);
+            }
+            main {
+                margin-top: 60px; /* Espaço para o header fixo */
+            }
         }
     </style>
 </head>
-<body class="flex min-h-screen">
+<body class="flex min-h-screen desktop-layout">
 
-    <aside class="sidebar w-64 p-6 flex flex-col items-center">
+    <header class="mobile-header hidden">
+        <button id="mobileMenuButton" class="text-2xl text-green-400 focus:outline-none">
+            &#x22EE; </button>
+        <span id="nome-usuario-header-mobile" class="text-sm text-slate-300"></span>
+        <div class="h-8 w-8 rounded-full bg-slate-700"></div>
+    </header>
+
+    <aside class="sidebar w-64 p-6 flex flex-col items-center desktop-sidebar mobile-sidebar-modal">
         <h1 class="text-2xl font-bold mb-8 text-green-400">Belo Vidro</h1>
         <div class="user-info text-center mb-8">
             <h2 class="text-lg font-semibold" id="nome-usuario-sidebar"></h2>
@@ -92,7 +136,7 @@
                 <button data-filter="concluido" data-type="status" class="filter-button px-4 py-2 rounded-lg">Concluídas</button>
                 <button data-filter="todas" data-type="status" class="filter-button px-4 py-2 rounded-lg">Todas</button>
             </div>
-            <div class="flex items-center gap-3 mt-4 sm:mt-0">
+            <div class="flex items-center gap-3 mt-4 sm:mt-0 desktop-header-info">
                 <span id="nome-usuario-header" class="text-sm text-slate-300"></span>
                 <div class="h-10 w-10 rounded-full bg-slate-700"></div>
             </div>
@@ -169,7 +213,6 @@
             getDownloadURL
         } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
 
-        // O código de proteção deve ser o primeiro a rodar
         (function protect(requiredRoles = ["funcionario", "funcionariorota"]) {
             try {
                 const s = JSON.parse(localStorage.getItem("bv.session") || "null");
@@ -184,6 +227,7 @@
 
         document.getElementById("nome-usuario-sidebar").textContent = NOME_FUNC;
         document.getElementById("nome-usuario-header").textContent = NOME_FUNC;
+        document.getElementById("nome-usuario-header-mobile").textContent = NOME_FUNC;
 
         const firebaseConfig = {
             apiKey: "AIzaSyDQGXH3b2bMR7ZdKPZm-vPONKijkRw-Xgg",
@@ -363,7 +407,6 @@
             return `${day}/${month}/${year}`;
         }
 
-        // Função principal de renderização
         function renderizarRotasFiltradas() {
             const container = document.getElementById("rotasContainer");
             container.innerHTML = "";
@@ -382,7 +425,6 @@
                 const isMyRoute = normalizaNome(rota.funcionario) === normalizaNome(NOME_FUNC);
                 const isFilteredByDate = filtroTempoAtual === 'sempre' || isToday(rota.data);
                 
-                // Verifica se a rota possui alguma etapa com o status do filtro
                 const hasMatchingStatus = filtroStatusAtual === 'todas' || 
                                           (rota.etapas && Object.values(rota.etapas).some(etapa => etapa.status === filtroStatusAtual));
                 
@@ -435,7 +477,6 @@
                     if (rota.etapas) {
                         const etapasArray = Object.values(rota.etapas);
                         etapasArray.forEach((etapa, idx) => {
-                             // Renderiza apenas as etapas que correspondem ao filtro de status
                             if (filtroStatusAtual === 'todas' || etapa.status === filtroStatusAtual) {
                                 let actionButton = '';
                                 if (etapa.status === 'pendente') {
@@ -443,8 +484,7 @@
                                 } else if (etapa.status === 'andamento') {
                                     actionButton = `<button onclick="openActionModal('${rotaId}', ${idx}, ${JSON.stringify(etapa)})" class="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded">Concluir</button>`;
                                 } else {
-                                     // Não mostra botão para status 'concluido'
-                                     actionButton = `<span class="text-xs text-slate-400">Concluído</span>`;
+                                    actionButton = `<span class="text-xs text-slate-400">Concluído</span>`;
                                 }
                                 const li = document.createElement('li');
                                 li.className = `etapa-item bg-slate-600 rounded-lg p-3 flex justify-between items-center etapa-status-${etapa.status}`;
@@ -479,7 +519,6 @@
             document.getElementById("loadingMessage").textContent = 'Erro ao carregar rotas.';
         });
 
-        // Event listener para os botões de filtro
         document.getElementById('filter-tempo').addEventListener('click', (event) => {
             const button = event.target.closest('.filter-button');
             if (button) {
@@ -504,6 +543,46 @@
             localStorage.removeItem("bv.session");
             window.location.href = "https://belovidro.github.io/belo-vidro-app-interno";
         });
+        
+        // --- Lógica para o Modal (Menu Lateral) ---
+        const mobileMenuButton = document.getElementById('mobileMenuButton');
+        const sidebarModal = document.querySelector('.mobile-sidebar-modal');
+        const desktopHeaderInfo = document.querySelector('.desktop-header-info');
+        const mobileHeader = document.querySelector('.mobile-header');
+
+        function toggleMobileMenu() {
+            sidebarModal.classList.toggle('modal-open');
+        }
+
+        mobileMenuButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMobileMenu();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (sidebarModal.classList.contains('modal-open') && !sidebarModal.contains(e.target) && e.target !== mobileMenuButton) {
+                toggleMobileMenu();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                sidebarModal.classList.remove('modal-open');
+                sidebarModal.classList.remove('mobile-sidebar-modal');
+                sidebarModal.classList.add('desktop-sidebar');
+                desktopHeaderInfo.style.display = 'flex';
+                mobileHeader.style.display = 'none';
+            } else {
+                sidebarModal.classList.remove('desktop-sidebar');
+                sidebarModal.classList.add('mobile-sidebar-modal');
+                desktopHeaderInfo.style.display = 'none';
+                mobileHeader.style.display = 'flex';
+            }
+        });
+
+        // Executa a verificação inicial para carregar o layout correto
+        window.dispatchEvent(new Event('resize'));
+        
     </script>
 </body>
 </html>
