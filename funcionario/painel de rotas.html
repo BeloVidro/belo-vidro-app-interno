@@ -13,6 +13,7 @@
         .sidebar {
             background-color: #2d3748;
             transition: transform 0.3s ease-in-out;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5); /* Adiciona sombra ao modal */
         }
         .main-content {
             background-color: #2d3748;
@@ -59,23 +60,22 @@
 
         /* --- Estilos para Mobile --- */
         @media (max-width: 768px) {
-            .desktop-layout {
-                flex-direction: column;
-            }
             .desktop-sidebar {
                 display: none;
             }
             .mobile-header {
-                display: flex;
+                display: flex !important;
                 padding: 1rem;
                 background-color: #1a202c;
                 justify-content: space-between;
                 align-items: center;
                 position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
+                top: 1rem; /* Adiciona espaço no topo */
+                left: 1rem;
+                right: 1rem;
                 z-index: 40;
+                border-radius: 12px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
             }
             .mobile-sidebar-modal {
                 position: fixed;
@@ -84,26 +84,31 @@
                 z-index: 50;
                 width: 80%;
                 height: 100%;
+                padding-top: 2rem; /* Adiciona espaço no topo do modal */
             }
             .modal-open {
                 transform: translateX(100%);
             }
             main {
-                margin-top: 60px; /* Espaço para o header fixo */
+                margin-top: 6rem; /* Ajusta o espaço para o cabeçalho fixo */
             }
         }
     </style>
 </head>
-<body class="flex min-h-screen desktop-layout">
+<body class="flex min-h-screen">
 
-    <header class="mobile-header hidden">
+    <header class="hidden md:hidden lg:hidden mobile-header">
         <button id="mobileMenuButton" class="text-2xl text-green-400 focus:outline-none">
-            &#x22EE; </button>
-        <span id="nome-usuario-header-mobile" class="text-sm text-slate-300"></span>
-        <div class="h-8 w-8 rounded-full bg-slate-700"></div>
+            &#x22EE;
+        </button>
+        <div class="flex items-center gap-2">
+            <span id="nome-usuario-header-mobile" class="text-sm text-slate-300"></span>
+            <div class="h-8 w-8 rounded-full bg-slate-700"></div>
+        </div>
     </header>
 
     <aside class="sidebar w-64 p-6 flex flex-col items-center desktop-sidebar mobile-sidebar-modal">
+        <button id="closeModalButton" class="absolute top-4 right-4 text-2xl text-white md:hidden lg:hidden">&times;</button>
         <h1 class="text-2xl font-bold mb-8 text-green-400">Belo Vidro</h1>
         <div class="user-info text-center mb-8">
             <h2 class="text-lg font-semibold" id="nome-usuario-sidebar"></h2>
@@ -547,41 +552,20 @@
         // --- Lógica para o Modal (Menu Lateral) ---
         const mobileMenuButton = document.getElementById('mobileMenuButton');
         const sidebarModal = document.querySelector('.mobile-sidebar-modal');
-        const desktopHeaderInfo = document.querySelector('.desktop-header-info');
-        const mobileHeader = document.querySelector('.mobile-header');
-
+        const closeModalButton = document.getElementById('closeModalButton');
+        
         function toggleMobileMenu() {
             sidebarModal.classList.toggle('modal-open');
         }
 
-        mobileMenuButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleMobileMenu();
-        });
+        mobileMenuButton.addEventListener('click', toggleMobileMenu);
+        closeModalButton.addEventListener('click', toggleMobileMenu);
 
         document.addEventListener('click', (e) => {
             if (sidebarModal.classList.contains('modal-open') && !sidebarModal.contains(e.target) && e.target !== mobileMenuButton) {
                 toggleMobileMenu();
             }
         });
-
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 768) {
-                sidebarModal.classList.remove('modal-open');
-                sidebarModal.classList.remove('mobile-sidebar-modal');
-                sidebarModal.classList.add('desktop-sidebar');
-                desktopHeaderInfo.style.display = 'flex';
-                mobileHeader.style.display = 'none';
-            } else {
-                sidebarModal.classList.remove('desktop-sidebar');
-                sidebarModal.classList.add('mobile-sidebar-modal');
-                desktopHeaderInfo.style.display = 'none';
-                mobileHeader.style.display = 'flex';
-            }
-        });
-
-        // Executa a verificação inicial para carregar o layout correto
-        window.dispatchEvent(new Event('resize'));
         
     </script>
 </body>
