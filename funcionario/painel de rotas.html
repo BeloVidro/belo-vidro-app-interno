@@ -156,6 +156,12 @@
             onValue,
             update
         } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+        import {
+            getStorage,
+            ref as storageRef,
+            uploadBytes,
+            getDownloadURL
+        } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
 
         // O código de proteção deve ser o primeiro a rodar
         (function protect(requiredRoles = ["funcionario", "funcionariorota"]) {
@@ -185,6 +191,7 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        const storage = getStorage(app);
 
         let currentRotaId = null;
         let currentEtapaIndex = null;
@@ -268,37 +275,24 @@
             btn.disabled = true;
             btn.textContent = 'Enviando...';
 
-            const formData = new FormData();
-            formData.append('imagem', file);
-            formData.append('rotaId', currentRotaId);
-            formData.append('etapaIndex', currentEtapaIndex);
-            formData.append('nomeFuncionario', NOME_FUNC);
-            formData.append('local', currentEtapaData.local);
-            
-            const serverUrl = 'http://localhost:3000/api/upload-imagem'; 
+            const filePath = `imagens-conclusao/${currentRotaId}/${currentEtapaIndex}_${Date.now()}_${file.name}`;
+            const storageReference = storageRef(storage, filePath);
 
             try {
-                const response = await fetch(serverUrl, {
-                    method: 'POST',
-                    body: formData,
+                await uploadBytes(storageReference, file);
+                const imageUrl = await getDownloadURL(storageReference);
+                
+                const etapaRef = ref(db, `rotas/${currentRotaId}/etapas/${currentEtapaIndex}`);
+                await update(etapaRef, {
+                    status: "concluido",
+                    imagem_url: imageUrl
                 });
 
-                const result = await response.json();
-                if (response.ok && result.success) {
-                    const etapaRef = ref(db, `rotas/${currentRotaId}/etapas/${currentEtapaIndex}`);
-                    await update(etapaRef, {
-                        status: "concluido",
-                        imagem: result.fileName
-                    }); 
-
-                    alert("Imagem enviada e tarefa concluída!");
-                    closeActionModal();
-                } else {
-                    alert(`Erro ao enviar imagem: ${result.message}`);
-                }
+                alert("Imagem enviada e tarefa concluída!");
+                closeActionModal();
             } catch (error) {
-                console.error("Erro na comunicação com o servidor:", error);
-                alert("Ocorreu um erro. Verifique sua conexão e tente novamente.");
+                console.error("Erro ao enviar imagem:", error);
+                alert("Ocorreu um erro ao enviar a imagem. Tente novamente.");
             } finally {
                 btn.disabled = false;
                 btn.textContent = '✅ Enviar e Concluir';
@@ -356,6 +350,11 @@
             return dateStr === `${year}-${month}-${day}`;
         }
         
+        function formatarData(dateStr) {
+            const [year, month, day] = dateStr.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
         function renderizarRotasFiltradas(filtro) {
             const container = document.getElementById("rotasContainer");
             container.innerHTML = "";
@@ -411,7 +410,7 @@
                         <div class="flex items-center justify-between cursor-pointer header-rota">
                             <div class="flex items-center space-x-2">
                                 <span class="expand-icon text-sm text-white">▶️</span>
-                                <span class="font-bold">${rota.data} - Rota ${rotaId.slice(0, 8)}</span>
+                                <span class="font-bold">${formatarData(rota.data)} - Rota ${rotaId.slice(0, 8)}</span>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <span class="text-xs text-slate-400">Status: ${rota.status_troca || 'OK'}</span>
@@ -444,7 +443,7 @@
                             let actionButton = '';
                             switch (etapa.status) {
                                 case 'andamento':
-                                    actionButton = `<button onclick="openActionModal('${rotaId}', ${idx}, ${JSON.stringify(etapa).replace(/"/g, "'")})" class="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded">Concluir</button>`;
+                                    actionButton = `<button onclick="openActionModal('${rotaId}', ${idx}, ${JSON.stringify(etapa)})" class="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded">Concluir</button>`;
                                     break;
                                 case 'concluido':
                                     actionButton = '<span class="text-xs text-green-400">Concluído</span>';
