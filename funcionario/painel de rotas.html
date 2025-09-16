@@ -81,12 +81,18 @@
     <main class="flex-1 p-8">
         <h2 class="text-2xl font-bold text-green-400 mb-6">Minhas Rotas</h2>
         
-        <div class="mb-4 flex items-center justify-between">
-            <div id="filter-buttons" class="flex gap-2">
-                <button data-filter="hoje" class="filter-button px-4 py-2 rounded-lg mr-2 active">Hoje</button>
-                <button data-filter="sempre" class="filter-button px-4 py-2 rounded-lg mr-2">Sempre</button>
+        <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div id="filter-tempo" class="flex flex-wrap gap-2">
+                <button data-filter="hoje" data-type="tempo" class="filter-button px-4 py-2 rounded-lg active">Hoje</button>
+                <button data-filter="sempre" data-type="tempo" class="filter-button px-4 py-2 rounded-lg">Sempre</button>
             </div>
-            <div class="flex items-center gap-3">
+            <div id="filter-status" class="flex flex-wrap gap-2">
+                <button data-filter="pendente" data-type="status" class="filter-button px-4 py-2 rounded-lg active">Pendentes</button>
+                <button data-filter="andamento" data-type="status" class="filter-button px-4 py-2 rounded-lg">Em Andamento</button>
+                <button data-filter="concluido" data-type="status" class="filter-button px-4 py-2 rounded-lg">Concluídas</button>
+                <button data-filter="todas" data-type="status" class="filter-button px-4 py-2 rounded-lg">Todas</button>
+            </div>
+            <div class="flex items-center gap-3 mt-4 sm:mt-0">
                 <span id="nome-usuario-header" class="text-sm text-slate-300"></span>
                 <div class="h-10 w-10 rounded-full bg-slate-700"></div>
             </div>
@@ -198,6 +204,8 @@
         let currentEtapaData = null;
         let dadosFirebase = null;
         let rotaIdParaTroca = null;
+        let filtroTempoAtual = 'hoje';
+        let filtroStatusAtual = 'pendente';
 
         function normalizaNome(s) {
             return (s || "").toString().trim().toLowerCase();
@@ -355,52 +363,30 @@
             return `${day}/${month}/${year}`;
         }
 
-        // Nova função para verificar se a rota tem etapas pendentes ou em andamento
-        function hasPendingOrInProgressSteps(rota) {
-            if (!rota.etapas) return false;
-            const etapasArray = Object.values(rota.etapas);
-            return etapasArray.some(etapa => etapa.status === "pendente" || etapa.status === "andamento");
-        }
-
-        function renderizarRotasFiltradas(filtro) {
+        // Função principal de renderização
+        function renderizarRotasFiltradas() {
             const container = document.getElementById("rotasContainer");
             container.innerHTML = "";
             
             const loadingMessage = document.getElementById("loadingMessage");
             loadingMessage.style.display = 'block';
+            loadingMessage.textContent = 'Carregando rotas...';
 
             if (!dadosFirebase) {
-                loadingMessage.textContent = 'Carregando dados...';
                 return;
             }
             
             let rotasEncontradas = false;
-            let filtroFn;
-
-            document.querySelectorAll('.filter-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelector(`[data-filter="${filtro}"]`).classList.add('active');
-
-            switch (filtro) {
-                case 'hoje':
-                    filtroFn = (rota) => isToday(rota.data);
-                    loadingMessage.textContent = 'Nenhuma rota encontrada para hoje.';
-                    break;
-                case 'sempre':
-                    filtroFn = (rota) => true;
-                    loadingMessage.textContent = 'Nenhuma rota encontrada.';
-                    break;
-                default:
-                    filtroFn = (rota) => true;
-                    break;
-            }
             
             const rotasFiltradas = Object.entries(dadosFirebase).filter(([id, rota]) => {
                 const isMyRoute = normalizaNome(rota.funcionario) === normalizaNome(NOME_FUNC);
-                const isFilteredByDate = filtroFn(rota);
-                const hasIncompleteSteps = hasPendingOrInProgressSteps(rota);
+                const isFilteredByDate = filtroTempoAtual === 'sempre' || isToday(rota.data);
                 
-                // Mostrar a rota somente se ela for do funcionário, corresponder à data e tiver etapas incompletas
-                return isMyRoute && isFilteredByDate && hasIncompleteSteps;
+                // Verifica se a rota possui alguma etapa com o status do filtro
+                const hasMatchingStatus = filtroStatusAtual === 'todas' || 
+                                          (rota.etapas && Object.values(rota.etapas).some(etapa => etapa.status === filtroStatusAtual));
+                
+                return isMyRoute && isFilteredByDate && hasMatchingStatus;
             });
             
             rotasFiltradas.sort((a, b) => {
@@ -448,29 +434,29 @@
                     const etapasUl = document.getElementById(`etapas-ul-${rotaId}`);
                     if (rota.etapas) {
                         const etapasArray = Object.values(rota.etapas);
-                        // Filtra as etapas para mostrar apenas as pendentes e em andamento
-                        const etapasFiltradas = etapasArray.filter(etapa => etapa.status === "pendente" || etapa.status === "andamento");
-
-                        etapasFiltradas.forEach((etapa, idx) => {
-                            let actionButton = '';
-                            switch (etapa.status) {
-                                case 'andamento':
-                                    actionButton = `<button onclick="openActionModal('${rotaId}', ${idx}, ${JSON.stringify(etapa)})" class="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded">Concluir</button>`;
-                                    break;
-                                default:
+                        etapasArray.forEach((etapa, idx) => {
+                             // Renderiza apenas as etapas que correspondem ao filtro de status
+                            if (filtroStatusAtual === 'todas' || etapa.status === filtroStatusAtual) {
+                                let actionButton = '';
+                                if (etapa.status === 'pendente') {
                                     actionButton = `<button onclick="iniciarTarefa('${rotaId}', ${idx})" class="bg-indigo-500 hover:bg-indigo-600 text-white text-xs px-3 py-1 rounded">Iniciar</button>`;
-                                    break;
+                                } else if (etapa.status === 'andamento') {
+                                    actionButton = `<button onclick="openActionModal('${rotaId}', ${idx}, ${JSON.stringify(etapa)})" class="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded">Concluir</button>`;
+                                } else {
+                                     // Não mostra botão para status 'concluido'
+                                     actionButton = `<span class="text-xs text-slate-400">Concluído</span>`;
+                                }
+                                const li = document.createElement('li');
+                                li.className = `etapa-item bg-slate-600 rounded-lg p-3 flex justify-between items-center etapa-status-${etapa.status}`;
+                                li.innerHTML = `
+                                    <div>
+                                        <p class="font-medium">${etapa.local}</p>
+                                        <p class="text-xs text-slate-300">${etapa.descricao}</p>
+                                    </div>
+                                    <div class="ml-4">${actionButton}</div>
+                                `;
+                                etapasUl.appendChild(li);
                             }
-                            const li = document.createElement('li');
-                            li.className = `etapa-item bg-slate-600 rounded-lg p-3 flex justify-between items-center etapa-status-${etapa.status}`;
-                            li.innerHTML = `
-                                <div>
-                                    <p class="font-medium">${etapa.local}</p>
-                                    <p class="text-xs text-slate-300">${etapa.descricao}</p>
-                                </div>
-                                <div class="ml-4">${actionButton}</div>
-                            `;
-                            etapasUl.appendChild(li);
                         });
                     }
                 });
@@ -478,6 +464,7 @@
             
             if (!rotasEncontradas) {
                 loadingMessage.style.display = 'block';
+                loadingMessage.textContent = 'Nenhuma rota encontrada com os filtros selecionados.';
             } else {
                 loadingMessage.style.display = 'none';
             }
@@ -486,17 +473,30 @@
         const rotasRef = ref(db, "rotas");
         onValue(rotasRef, (snapshot) => {
             dadosFirebase = snapshot.val();
-            renderizarRotasFiltradas('hoje');
+            renderizarRotasFiltradas();
         }, (err) => {
             console.error("Erro ao ler rotas:", err);
             document.getElementById("loadingMessage").textContent = 'Erro ao carregar rotas.';
         });
-        
-        document.getElementById('filter-buttons').addEventListener('click', (event) => {
+
+        // Event listener para os botões de filtro
+        document.getElementById('filter-tempo').addEventListener('click', (event) => {
             const button = event.target.closest('.filter-button');
             if (button) {
-                const filtro = button.getAttribute('data-filter');
-                renderizarRotasFiltradas(filtro);
+                filtroTempoAtual = button.getAttribute('data-filter');
+                document.querySelectorAll('#filter-tempo .filter-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                renderizarRotasFiltradas();
+            }
+        });
+        
+        document.getElementById('filter-status').addEventListener('click', (event) => {
+            const button = event.target.closest('.filter-button');
+            if (button) {
+                filtroStatusAtual = button.getAttribute('data-filter');
+                document.querySelectorAll('#filter-status .filter-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                renderizarRotasFiltradas();
             }
         });
 
