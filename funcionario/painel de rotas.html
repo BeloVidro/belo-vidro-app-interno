@@ -355,6 +355,13 @@
             return `${day}/${month}/${year}`;
         }
 
+        // Nova função para verificar se a rota tem etapas pendentes ou em andamento
+        function hasPendingOrInProgressSteps(rota) {
+            if (!rota.etapas) return false;
+            const etapasArray = Object.values(rota.etapas);
+            return etapasArray.some(etapa => etapa.status === "pendente" || etapa.status === "andamento");
+        }
+
         function renderizarRotasFiltradas(filtro) {
             const container = document.getElementById("rotasContainer");
             container.innerHTML = "";
@@ -390,7 +397,10 @@
             const rotasFiltradas = Object.entries(dadosFirebase).filter(([id, rota]) => {
                 const isMyRoute = normalizaNome(rota.funcionario) === normalizaNome(NOME_FUNC);
                 const isFilteredByDate = filtroFn(rota);
-                return isMyRoute && isFilteredByDate;
+                const hasIncompleteSteps = hasPendingOrInProgressSteps(rota);
+                
+                // Mostrar a rota somente se ela for do funcionário, corresponder à data e tiver etapas incompletas
+                return isMyRoute && isFilteredByDate && hasIncompleteSteps;
             });
             
             rotasFiltradas.sort((a, b) => {
@@ -438,15 +448,14 @@
                     const etapasUl = document.getElementById(`etapas-ul-${rotaId}`);
                     if (rota.etapas) {
                         const etapasArray = Object.values(rota.etapas);
+                        // Filtra as etapas para mostrar apenas as pendentes e em andamento
+                        const etapasFiltradas = etapasArray.filter(etapa => etapa.status === "pendente" || etapa.status === "andamento");
 
-                        etapasArray.forEach((etapa, idx) => {
+                        etapasFiltradas.forEach((etapa, idx) => {
                             let actionButton = '';
                             switch (etapa.status) {
                                 case 'andamento':
                                     actionButton = `<button onclick="openActionModal('${rotaId}', ${idx}, ${JSON.stringify(etapa)})" class="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded">Concluir</button>`;
-                                    break;
-                                case 'concluido':
-                                    actionButton = '<span class="text-xs text-green-400">Concluído</span>';
                                     break;
                                 default:
                                     actionButton = `<button onclick="iniciarTarefa('${rotaId}', ${idx})" class="bg-indigo-500 hover:bg-indigo-600 text-white text-xs px-3 py-1 rounded">Iniciar</button>`;
