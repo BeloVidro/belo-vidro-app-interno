@@ -47,27 +47,48 @@
             background-color: #4a5568; /* Cinza escuro */
             color: #e2e8f0;
         }
+        
+        /* Novas classes para a barra lateral expansível */
+        .sidebar {
+            width: 64px; /* Largura inicial, ajustável */
+            transition: width 0.3s ease-in-out;
+            white-space: nowrap; /* Impede que o texto quebre a linha */
+        }
+        .sidebar.expanded {
+            width: 256px; /* Largura expandida */
+        }
+        .sidebar-content {
+            display: none; /* Conteúdo escondido por padrão */
+        }
+        .sidebar.expanded .sidebar-content {
+            display: flex; /* Conteúdo visível quando expandido */
+        }
     </style>
 </head>
 <body class="flex min-h-screen">
 
-    <aside class="sidebar w-64 p-6 flex flex-col items-center">
-        <h1 class="text-2xl font-bold mb-8 text-green-400">Belo Vidro</h1>
-        <div class="user-info text-center mb-8">
-            <h2 class="text-lg font-semibold" id="nome-usuario-sidebar"></h2>
-            <p class="text-sm text-gray-400">PAINEL DO FUNCIONÁRIO</p>
+    <aside id="sidebar" class="sidebar flex flex-col items-center p-2 h-screen">
+        <button id="toggle-sidebar" class="text-white p-2 mb-4 self-end">
+            <span class="text-2xl">➡️</span>
+        </button>
+        <div id="sidebar-content" class="flex-1 flex flex-col items-center">
+            <h1 class="text-2xl font-bold mb-8 text-green-400">Belo Vidro</h1>
+            <div class="user-info text-center mb-8">
+                <h2 class="text-lg font-semibold" id="nome-usuario-sidebar"></h2>
+                <p class="text-sm text-gray-400">PAINEL DO FUNCIONÁRIO</p>
+            </div>
+            <nav class="flex flex-col w-full space-y-4">
+                <a href="painel-do-funcionario.html" class="flex items-center px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-700">
+                    <span class="mr-3">📄</span> Início
+                </a>
+                <a href="painel de rotas.html" class="flex items-center px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-700">
+                    <span class="mr-3">🗺️</span> Minhas Rotas
+                </a>
+                <button id="btnSair" class="flex items-center px-4 py-2 rounded-lg text-red-400 hover:bg-gray-700 mt-auto">
+                    <span class="mr-3">🚪</span> Sair
+                </button>
+            </nav>
         </div>
-        <nav class="flex flex-col w-full space-y-4">
-            <a href="painel-do-funcionario.html" class="flex items-center px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-700">
-                <span class="mr-3">📄</span> Inicio
-            </a>
-            <a href="painel de rotas.html" class="flex items-center px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-700">
-                <span class="mr-3">🗺️</span> Minhas Rotas
-            </a>
-            <button id="btnSair" class="flex items-center px-4 py-2 rounded-lg text-red-400 hover:bg-gray-700 mt-auto">
-                <span class="mr-3">🚪</span> Sair
-            </button>
-        </nav>
     </aside>
 
     <main class="flex-1 p-8">
@@ -89,7 +110,7 @@
                 Carregando suas rotas...
             </div>
             <div id="rotasContainer" class="mt-4 space-y-4">
-                </div>
+            </div>
         </section>
     </main>
 
@@ -142,13 +163,13 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
         import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
 
-         // O código de proteção deve ser o primeiro a rodar
-   (function protect(requiredRoles = ["funcionario", "funcionariorota" ]) {
-    try {
-        const s = JSON.parse(localStorage.getItem("bv.session") || "null");
-        if (!s || !requiredRoles.includes(s.role)) location.replace("https://belovidro.github.io/belo-vidro-app-interno");
-    } catch(e){ location.replace("https://belovidro.github.io/belo-vidro-app-interno"); }
-})();
+        // O código de proteção deve ser o primeiro a rodar
+        (function protect(requiredRoles = ["funcionario", "funcionariorota" ]) {
+            try {
+                const s = JSON.parse(localStorage.getItem("bv.session") || "null");
+                if (!s || !requiredRoles.includes(s.role)) location.replace("https://belovidro.github.io/belo-vidro-app-interno");
+            } catch(e){ location.replace("https://belovidro.github.io/belo-vidro-app-interno"); }
+        })();
 
         const sessao = JSON.parse(localStorage.getItem("bv.session") || "null");
         const NOME_FUNC = sessao?.name || "Funcionário";
@@ -267,7 +288,7 @@
                 const result = await response.json();
                 if (response.ok && result.success) {
                     const etapaRef = ref(db, `rotas/${currentRotaId}/etapas/${currentEtapaIndex}`);
-                    await update(etapaRef, { status: "concluido", imagem: result.fileName }); 
+                    await update(etapaRef, { status: "concluido", imagem: result.fileName });  
 
                     alert("Imagem enviada e tarefa concluída!");
                     closeActionModal();
@@ -469,11 +490,46 @@
             localStorage.removeItem("bv.session");
             window.location.href = "https://belovidro.github.io/belo-vidro-app-interno";
         });
+        
+        // Lógica para a barra lateral expansível
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('toggle-sidebar');
+            const sidebarContent = document.getElementById('sidebar-content');
+        
+            function toggleSidebar() {
+                const isExpanded = sidebar.classList.toggle('expanded');
+                if (isExpanded) {
+                    toggleBtn.innerHTML = '⬅️';
+                    sidebarContent.classList.remove('hidden');
+                    sidebarContent.classList.add('flex');
+                } else {
+                    toggleBtn.innerHTML = '➡️';
+                    sidebarContent.classList.remove('flex');
+                    sidebarContent.classList.add('hidden');
+                }
+            }
+        
+            toggleBtn.addEventListener('click', toggleSidebar);
+        
+            const mediaQuery = window.matchMedia('(min-width: 768px)');
+            function handleTabletChange(e) {
+                if (e.matches) {
+                    sidebar.classList.add('expanded');
+                    sidebarContent.classList.remove('hidden');
+                    sidebarContent.classList.add('flex');
+                    toggleBtn.innerHTML = '⬅️';
+                } else {
+                    sidebar.classList.remove('expanded');
+                    sidebarContent.classList.remove('flex');
+                    sidebarContent.classList.add('hidden');
+                    toggleBtn.innerHTML = '➡️';
+                }
+            }
+            
+            mediaQuery.addListener(handleTabletChange);
+            handleTabletChange(mediaQuery);
+        });
     </script>
 </body>
-
 </html>
-
-
-
-
