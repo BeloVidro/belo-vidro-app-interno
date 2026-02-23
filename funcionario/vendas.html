@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Agenda de Vendas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Ajustes globais para WebView móvel */
+        html, body {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+        img, video, canvas { max-width: 100%; height: auto; }
+        .modal { display:none; position:fixed; inset:0; z-index:50; align-items:center; justify-content:center; background:rgba(0,0,0,0.5); }
+        .modal .content { background:#fff; padding:1rem; border-radius:8px; width:95%; max-width:640px; }
+    </style>
+    <script>
+        (function protect(requiredRoles=["vendedor"]) {
+            try {
+                const s = JSON.parse(localStorage.getItem("bv.session")||"null");
+                const role = (s && s.role) ? String(s.role).toLowerCase() : null;
+                if (!s || !role || !requiredRoles.includes(role)) location.replace("/longs/logns.html");
+            } catch(e){ location.replace("/longs/logns.html"); }
+        })(["vendedor"]);
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <main class="max-w-5xl mx-auto w-full p-6">
+        <header class="mb-6 flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-green-700">Agenda de Vendas</h1>
+            <div class="text-sm text-gray-600">Usuário: <span id="userName">—</span></div>
+        </header>
+
+        <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" id="summarySection">
+            <div class="col-span-1 bg-white rounded-lg shadow p-4 flex flex-col">
+                <div class="text-sm text-gray-500">Vendas (últimos 30 dias)</div>
+                <div id="total30Dias" class="text-2xl font-bold text-green-700">R$ 0,00</div>
+                <div id="count30Dias" class="text-xs text-gray-500">0 vendas</div>
+            </div>
+            <div class="col-span-1 bg-white rounded-lg shadow p-4 hidden sm:flex sm:flex-col" id="placeholder1"></div>
+            <div class="col-span-1 bg-white rounded-lg shadow p-4 hidden sm:flex sm:flex-col" id="placeholder2"></div>
+        </section>
+
+        <section class="bg-white p-6 rounded-lg shadow mb-6">
+            <form id="formVenda" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium">Cliente</label>
+                    <input id="cliente" class="mt-1 block w-full border rounded p-2" required />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Data</label>
+                    <input id="data" type="date" class="mt-1 block w-full border rounded p-2" required />
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium">Descrição / Observações</label>
+                    <input id="descricao" class="mt-1 block w-full border rounded p-2" />
+                </div>
+                    <div>
+                        <label class="block text-sm font-medium">Tipo</label>
+                        <select id="tipo" class="mt-1 block w-full border rounded p-2">
+                            <option value="Venda">Venda</option>
+                            <option value="Adiantamento">Adiantamento</option>
+                        </select>
+                    </div>
+                <div>
+                    <label class="block text-sm font-medium">Valor (R$)</label>
+                    <input id="valor" type="number" step="0.01" min="0" class="mt-1 block w-full border rounded p-2" required />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Status</label>
+                    <select id="status" class="mt-1 block w-full border rounded p-2">
+                        <option value="Pendente">Pendente</option>
+                        <option value="Atendido">Atendido</option>
+                        <option value="Cancelado">Cancelado</option>
+                    </select>
+                </div>
+                <div class="sm:col-span-2 flex gap-2 justify-end">
+                    <button type="reset" class="px-4 py-2 rounded bg-gray-200">Limpar</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-green-600 text-white">Registrar Venda</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="bg-white p-6 rounded-lg shadow">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
+                <div class="flex gap-2 items-center">
+                        <label class="text-sm">Filtrar mês:</label>
+                        <input id="filtroMes" type="month" class="border rounded p-1" />
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <label class="text-sm">Tipo:</label>
+                        <select id="filtroTipo" class="border rounded p-1">
+                            <option value="">Todas</option>
+                            <option value="Venda">Venda</option>
+                            <option value="Adiantamento">Adiantamento</option>
+                        </select>
+                    </div>
+                <div class="text-right">
+                    <div class="text-sm text-gray-600">Total deste filtro:</div>
+                    <div id="totalFiltro" class="text-xl font-bold text-green-700">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left table-auto">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="p-2">Data</th>
+                            <th class="p-2">Cliente</th>
+                            <th class="p-2">Descrição</th>
+                            <th class="p-2">Valor</th>
+                            <th class="p-2">Status</th>
+                            <th class="p-2">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaVendas">
+                        <tr><td colspan="6" class="p-4 text-center text-gray-500">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+        import { getDatabase, ref, push, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQGXH3b2bMR7ZdKPZm-vPONKijkRw-Xgg",
+            authDomain: "belo-vidro-banco-de-dados.firebaseapp.com",
+            projectId: "belo-vidro-banco-de-dados",
+            storageBucket: "belo-vidro-banco-de-dados.firebasestorage.app",
+            messagingSenderId: "705873952615",
+            appId: "1:705873952615:web:83613fd5d2839aad66b9c2",
+            databaseURL: "https://belo-vidro-banco-de-dados-default-rtdb.firebaseio.com"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const vendasRef = ref(db, 'vendas');
+
+        const sessao = JSON.parse(localStorage.getItem('bv.session')||'null');
+        const userNameEl = document.getElementById('userName');
+        userNameEl.textContent = sessao?.name || 'Usuário';
+
+        const form = document.getElementById('formVenda');
+        const listaEl = document.getElementById('listaVendas');
+        const filtroMes = document.getElementById('filtroMes');
+        const filtroTipo = document.getElementById('filtroTipo');
+        const totalFiltroEl = document.getElementById('totalFiltro');
+
+        let vendasCache = [];
+
+        function formatarDataIsoToBr(d) {
+            if (!d) return '-';
+            const [y,m,day] = d.split('-');
+            return `${day}/${m}/${y}`;
+        }
+
+        function formatCurrency(v) {
+            return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function renderLista() {
+            const filtro = filtroMes.value; // YYYY-MM
+            listaEl.innerHTML = '';
+            let total = 0;
+
+            const tipoFiltro = filtroTipo?.value || '';
+
+            const filtradas = vendasCache.filter(item => {
+                if (!sessao) return false;
+                const vendedorMatch = item.vendedor === (sessao.name || sessao.email || sessao.id);
+                if (!vendedorMatch) return false;
+
+                // Filtra por tipo (Venda / Adiantamento) se selecionado
+                if (tipoFiltro && String(item.tipo || '').toLowerCase() !== String(tipoFiltro).toLowerCase()) return false;
+
+                if (!filtro) return true;
+                const [ano, mes] = filtro.split('-');
+                const itemMes = (new Date(item.data + 'T00:00:00')).getMonth()+1;
+                const itemAno = (new Date(item.data + 'T00:00:00')).getFullYear();
+                return (String(itemAno) === ano && String(itemMes).padStart(2,'0') === mes);
+            });
+
+            if (filtradas.length === 0) {
+                listaEl.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500">Nenhuma venda registrada.</td></tr>';
+            } else {
+                filtradas.sort((a,b)=> new Date(b.data) - new Date(a.data));
+                filtradas.forEach(v => {
+                    total += Number(v.valor) || 0;
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-t';
+                    tr.innerHTML = `
+                        <td class="p-2">${formatarDataIsoToBr(v.data)}</td>
+                        <td class="p-2">${escapeHtml(v.cliente)}</td>
+                        <td class="p-2">${escapeHtml(v.descricao||'')}</td>
+                        <td class="p-2">${formatCurrency(v.valor)}</td>
+                        <td class="p-2">${v.status}</td>
+                        <td class="p-2">
+                            <button class="text-blue-600 mr-2" onclick="editarStatus('${v.id}')">Editar</button>
+                            <button class="text-red-600" onclick="excluirVenda('${v.id}')">Excluir</button>
+                        </td>
+                    `;
+                    listaEl.appendChild(tr);
+                });
+            }
+
+            totalFiltroEl.textContent = formatCurrency(total);
+        }
+
+        function escapeHtml(str){
+            if (!str) return '';
+            return String(str).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; });
+        }
+
+        // CRUD
+        form.addEventListener('submit', (e)=>{
+            e.preventDefault();
+            if (!sessao) return alert('Sessão inválida.');
+            const cliente = document.getElementById('cliente').value.trim();
+            const data = document.getElementById('data').value;
+            const descricao = document.getElementById('descricao').value.trim();
+            const valor = parseFloat(document.getElementById('valor').value) || 0;
+            const status = document.getElementById('status').value;
+            const tipo = document.getElementById('tipo').value || 'Venda';
+
+            const newRef = push(vendasRef);
+            set(newRef, {
+                cliente, data, descricao, valor, status, tipo,
+                vendedor: sessao.name || sessao.email || sessao.id,
+                vendedorId: sessao.id || null,
+                timestamp: Date.now()
+            }).then(()=>{
+                form.reset();
+            }).catch(err => { console.error(err); alert('Erro ao salvar venda.'); });
+        });
+
+        window.excluirVenda = function(id){
+            if (!confirm('Excluir esta venda?')) return;
+            set(ref(db, `vendas/${id}`), null).catch(err=>{console.error(err); alert('Erro ao excluir.');});
+        }
+
+        window.editarStatus = function(id){
+            const nova = prompt('Novo status (Pendente / Atendido / Cancelado):');
+            if (!nova) return;
+            update(ref(db, `vendas/${id}`), { status: nova }).catch(err=>{console.error(err); alert('Erro ao atualizar.');});
+        }
+
+        // Observa vendas
+        onValue(vendasRef, (snap)=>{
+            const dados = snap.val() || {};
+            vendasCache = Object.entries(dados).map(([id, v]) => ({ id, ...v }));
+            renderLista();
+            atualizarResumo30Dias();
+        });
+
+        // filtro
+        filtroMes.addEventListener('change', renderLista);
+        filtroTipo?.addEventListener('change', renderLista);
+
+        // Calcula e atualiza o painel com vendas dos últimos 30 dias
+        function atualizarResumo30Dias(){
+            const agora = Date.now();
+            const trintaDiasMs = 30 * 24 * 60 * 60 * 1000;
+            const limite = agora - trintaDiasMs;
+            let total = 0;
+            let count = 0;
+            if (!sessao) {
+                document.getElementById('total30Dias').textContent = formatCurrency(0);
+                document.getElementById('count30Dias').textContent = '0 vendas';
+                return;
+            }
+
+            vendasCache.forEach(item => {
+                const itemTimestamp = item.timestamp || (new Date(item.data + 'T00:00:00')).getTime();
+                const isVenda = String(item.tipo || 'Venda').toLowerCase() === 'venda';
+                const isSameVendedor = item.vendedor === (sessao.name || sessao.email || sessao.id);
+                if (isVenda && isSameVendedor && Number(itemTimestamp) >= limite) {
+                    total += Number(item.valor) || 0;
+                    count += 1;
+                }
+            });
+
+            document.getElementById('total30Dias').textContent = formatCurrency(total);
+            document.getElementById('count30Dias').textContent = `${count} venda${count !== 1 ? 's' : ''}`;
+        }
+
+    </script>
+</body>
+</html>
+
